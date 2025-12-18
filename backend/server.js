@@ -5,6 +5,9 @@ const dotenv = require('dotenv');
 // Importar rutas
 const authRoutes = require('./src/routes/auth');
 const restaurantRoutes = require('./src/routes/restaurants');
+const orderRoutes = require('./src/routes/orders');
+const deliveryRoutes = require('./src/routes/delivery');
+const adminRoutes = require('./src/routes/admin');
 
 // Configuración
 dotenv.config();
@@ -24,6 +27,9 @@ app.get('/', (req, res) => {
         endpoints: {
             auth: '/api/auth',
             restaurants: '/api/restaurants',
+            orders: '/api/orders',
+            delivery: '/api/delivery',
+            admin: '/api/admin',
             health: '/api/health'
         }
     });
@@ -36,11 +42,17 @@ app.get('/api/health', (req, res) => {
 // Rutas de API
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`\n✅ Servidor corriendo en: http://localhost:${PORT}`);
     console.log(`📡 Esperando peticiones...`);
-    console.log(`🔐 Endpoints de autenticación disponibles en /api/auth`);
-    console.log(`🍔 Endpoints de restaurantes disponibles en /api/restaurants\n`);
+    console.log(`🔐 Auth: /api/auth`);
+    console.log(`🍔 Restaurantes: /api/restaurants`);
+    console.log(`📦 Pedidos: /api/orders`);
+    console.log(`🛵 Repartidores: /api/delivery`);
+    console.log(`📊 Admin: /api/admin\n`);
 });

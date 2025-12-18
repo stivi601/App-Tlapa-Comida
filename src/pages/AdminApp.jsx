@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Users, Store, TrendingUp, DollarSign, Activity, Trash2, Plus, Camera, Bell, Bike, ShieldCheck, Truck, Search } from 'lucide-react';
 
@@ -31,7 +31,31 @@ export default function AdminApp() {
     const [searchRider, setSearchRider] = useState('');
     const [searchUser, setSearchUser] = useState('');
 
-    const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
+    // Stats State
+    const [stats, setStats] = useState({
+        sales: 0,
+        restaurants: 0,
+        orders: 0,
+        users: 0,
+        riders: 0
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await fetch('http://localhost:3000/api/admin/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (error) {
+                console.error("Error loading admin stats", error);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    const totalSales = stats.sales;
 
     const handleSaveRestaurant = (e) => {
         e.preventDefault();
@@ -146,7 +170,7 @@ export default function AdminApp() {
                                 </div>
                                 <div>
                                     <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Restaurantes</p>
-                                    <h3 style={{ fontSize: '1.5rem' }}>{restaurants.length}</h3>
+                                    <h3 style={{ fontSize: '1.5rem' }}>{stats.restaurants}</h3>
                                 </div>
                             </div>
                             <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -155,7 +179,7 @@ export default function AdminApp() {
                                 </div>
                                 <div>
                                     <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Ordenes Hoy</p>
-                                    <h3 style={{ fontSize: '1.5rem' }}>{orders.length}</h3>
+                                    <h3 style={{ fontSize: '1.5rem' }}>{stats.orders}</h3>
                                 </div>
                             </div>
                             <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -164,7 +188,17 @@ export default function AdminApp() {
                                 </div>
                                 <div>
                                     <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Usuarios Reg.</p>
-                                    <h3 style={{ fontSize: '1.5rem' }}>{registeredUsers.length}</h3>
+                                    <h3 style={{ fontSize: '1.5rem' }}>{stats.users}</h3>
+                                </div>
+                            </div>
+                            {/* Card extra para repartidores */}
+                            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ padding: '1rem', background: '#EFF6FF', borderRadius: '12px', color: '#3B82F6' }}>
+                                    <Bike size={24} />
+                                </div>
+                                <div>
+                                    <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Repartidores</p>
+                                    <h3 style={{ fontSize: '1.5rem' }}>{stats.riders}</h3>
                                 </div>
                             </div>
                         </div>

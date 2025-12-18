@@ -1,20 +1,166 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Bike, MapPin, Navigation, Package, User, LogOut, Camera, Home, CheckCircle } from 'lucide-react';
+import { Bike, Navigation, Package, User, LogOut, Camera, Home, CheckCircle, MapPin, Layers } from 'lucide-react';
+
+const API_URL = 'http://localhost:3000/api';
 
 export default function DeliveryApp() {
-    const { orders, updateOrderStatus, deliveryUser, loginDelivery, updateDeliveryRider, setDeliveryUser } = useApp();
-    const [activeTab, setActiveTab] = useState('orders'); // orders | profile
+    const { setDeliveryUser, deliveryUser } = useApp();
+    const [activeTab, setActiveTab] = useState('orders'); // orders | available | profile
     const [isOnline, setIsOnline] = useState(true);
+    const [orders, setOrders] = useState([]);
+    const [availableOrders, setAvailableOrders] = useState([]);
 
     // Login State
     const [loginData, setLoginData] = useState({ username: '', password: '' });
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = (e) => {
+    // Cargar datos al iniciar si hay usuario
+    useEffect(() => {
+        if (deliveryUser?.token) {
+            fetchOrders();
+            fetchAvailableOrders();
+            fetchStats();
+        }
+    }, [deliveryUser, activeTab]); // Recargar al cambiar de tab
+
+    const fetchOrders = async () => {
+        try {
+            const res = await fetch(`${API_URL}/orders/my-orders`, {
+                headers: { 'Authorization': `Bearer ${deliveryUser.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setOrders(data);
+            }
+        } catch (error) {
+            console.error("Error fetching orders", error);
+        }
+    };
+
+    const fetchAvailableOrders = async () => {
+        try {
+            const res = await fetch(`${API_URL}/orders/available`, {
+                headers: { 'Authorization': `Bearer ${deliveryUser.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableOrders(data);
+            }
+        } catch (error) {
+            console.error("Error fetching available orders", error);
+        }
+    };
+
+    const fetchStats = async () => {
+        try {
+            const res = await fetch(`${API_URL}/delivery/stats`, {
+                headers: { 'Authorization': `Bearer ${deliveryUser.token}` }
+            });
+            if (res.ok) {
+                // Actualizar stats si es necesario
+            }
+        } catch (error) {
+            console.error("Error fetching stats", error);
+        }
+    };
+
+    const handleLogin = async (e) => {
         e.preventDefault();
-        const success = loginDelivery(loginData.username, loginData.password);
-        if (!success) setError('Usuario o contraseña incorrectos');
+        setError('');
+        setLoading(true);
+
+        try {
+            const res = await fetch(`${API_URL}/delivery/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(loginData)
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+
+            // Guardar usuario en contexto con el token
+            setDeliveryUser({ ...data.rider, token: data.token });
+            setIsOnline(data.rider.isOnline);
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (orderId, newStatus) => {
+        try {
+            const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${deliveryUser.token}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (res.ok) {
+                fetchOrders(); // Recargar pedidos propios
+            }
+        } catch (error) {
+            console.error("Error updating status", error);
+        }
+    };
+
+    const assignToMe = async (orderId) => {
+        try {
+            // Usamos el endpoint de asignación.
+            // Ojo: definimos PUT /api/orders/:id/assign en backend?
+            // Revisando orderController.js: assignOrder usa req.body.riderId.
+            // Si el user es Rider, tal vez debamos permitir self-assign o usar un endpoint específico "take".
+            // Usaremos el de assign pasando nuestro propio ID.
+            const res = await fetch(`${API_URL}/orders/${orderId}/assign`, {
+                method: 'PATCH', // Es PATCH o PUT según definimos? Revisaré... definí PUT en orders.js pero PATCH en controller?
+                // Revisemos routes/orders.js: router.put('/:id/assign', ...)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${deliveryUser.token}`
+                },
+                body: JSON.stringify({ riderId: deliveryUser.id })
+            });
+
+            if (res.ok) {
+                alert("¡Pedido asignado! Ve a 'Mis Pedidos' para gestionarlo.");
+                fetchAvailableOrders();
+                fetchOrders();
+                setActiveTab('orders');
+            } else {
+                const err = await res.json();
+                alert("No se pudo asignar: " + err.error);
+            }
+        } catch (error) {
+            console.error("Error assigning order", error);
+        }
+    };
+
+    const toggleOnlineStatus = async () => {
+        try {
+            const newStatus = !isOnline;
+            const res = await fetch(`${API_URL}/delivery/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${deliveryUser.token}`
+                },
+                body: JSON.stringify({ isOnline: newStatus })
+            });
+
+            if (res.ok) {
+                setIsOnline(newStatus);
+            }
+        } catch (error) {
+            console.error("Error toggling status", error);
+        }
     };
 
     if (!deliveryUser) {
@@ -39,68 +185,111 @@ export default function DeliveryApp() {
                             <input type="password" className="input" required value={loginData.password} onChange={e => setLoginData({ ...loginData, password: e.target.value })} />
                         </div>
                         {error && <p style={{ color: '#EF4444', fontSize: '0.85rem', textAlign: 'center' }}>{error}</p>}
-                        <button type="submit" className="btn" style={{ background: '#10B981', color: 'white', padding: '1rem', borderRadius: '12px' }}>Entrar al Panel</button>
+                        <button type="submit" disabled={loading} className="btn" style={{ background: '#10B981', color: 'white', padding: '1rem', borderRadius: '12px' }}>
+                            {loading ? 'Cargando...' : 'Entrar al Panel'}
+                        </button>
                     </form>
+                    <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8' }}>
+                        <p>Demo: carlos / 123</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // Filter orders that are ready for pickup or already assigned to this driver
-    const availableOrders = orders.filter(o => {
-        const isAssignedToThisRider = o.status === 'delivering' && o.riderId === deliveryUser.id;
-        const isReadyForThisRider = o.status === 'ready' && (!deliveryUser.assignedRestaurant || o.restaurant === deliveryUser.assignedRestaurant);
-        return isReadyForThisRider || isAssignedToThisRider;
-    });
+    // Filtrar órdenes activas vs historial
+    const activeOrders = orders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED');
 
     return (
         <div style={{ paddingBottom: '80px', background: '#F8FAFC', minHeight: '100vh' }}>
 
-            {activeTab === 'orders' && (
-                <div className="fade-in" style={{ padding: '1.5rem' }}>
-                    <header className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#10B981', color: 'white', padding: '1.2rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                {deliveryUser.image ? <img src={deliveryUser.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Bike size={20} />}
-                            </div>
-                            <div>
-                                <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>Hola, {deliveryUser.name.split(' ')[0]}</h2>
-                                <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>{isOnline ? '● En línea' : '○ Desconectado'}</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setIsOnline(!isOnline)}
-                            style={{ background: 'white', color: isOnline ? '#10B981' : '#64748B', padding: '0.5rem 1rem', borderRadius: '20px', fontWeight: '700', fontSize: '0.85rem', border: 'none', cursor: 'pointer' }}
-                        >
-                            {isOnline ? 'ONLINE' : 'OFFLINE'}
-                        </button>
-                    </header>
+            <header className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#10B981', color: 'white', padding: '1.2rem', borderRadius: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {deliveryUser.image ? <img src={deliveryUser.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Bike size={20} />}
+                    </div>
+                    <div>
+                        <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>Hola, {deliveryUser.name.split(' ')[0]}</h2>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>{isOnline ? '● En línea' : '○ Desconectado'}</span>
+                    </div>
+                </div>
+                <button
+                    onClick={toggleOnlineStatus}
+                    style={{ background: 'white', color: isOnline ? '#10B981' : '#64748B', padding: '0.5rem 1rem', borderRadius: '20px', fontWeight: '700', fontSize: '0.85rem', border: 'none', cursor: 'pointer' }}
+                >
+                    {isOnline ? 'ONLINE' : 'OFFLINE'}
+                </button>
+            </header>
 
-                    {!isOnline ? (
-                        <div style={{ textAlign: 'center', marginTop: '4rem', color: '#94A3B8' }}>
-                            <Bike size={64} style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
-                            <h3 style={{ color: '#64748B' }}>Estás desconectado</h3>
-                            <p style={{ fontSize: '0.9rem' }}>Activa tu estado para recibir pedidos.</p>
-                        </div>
-                    ) : (
-                        <div>
+            {!isOnline ? (
+                <div className="fade-in" style={{ padding: '1.5rem', textAlign: 'center', marginTop: '2rem', color: '#94A3B8' }}>
+                    <Bike size={64} style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
+                    <h3 style={{ color: '#64748B' }}>Estás desconectado</h3>
+                    <p style={{ fontSize: '0.9rem' }}>Activa tu estado para recibir pedidos.</p>
+                </div>
+            ) : (
+                <>
+                    {/* Available Orders Tab */}
+                    {activeTab === 'available' && (
+                        <div className="fade-in" style={{ padding: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
                                 <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-                                    <Package size={20} color="#10B981" /> Pedidos Actuales
+                                    <Layers size={20} color="#3B82F6" /> Pedidos Disponibles
                                 </h3>
-                                <span style={{ fontSize: '0.85rem', color: '#64748B' }}>{availableOrders.length} disponibles</span>
+                                <span style={{ fontSize: '0.85rem', color: '#64748B' }}>{availableOrders.length} cercanos</span>
                             </div>
 
                             {availableOrders.length === 0 ? (
                                 <div style={{ textAlign: 'center', marginTop: '3rem', color: '#94A3B8', padding: '2rem', background: 'white', borderRadius: '20px' }}>
-                                    <p>Esperando nuevos pedidos...</p>
+                                    <p>No hay pedidos pendientes por asignar.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {availableOrders.map(order => (
+                                        <div key={order.id} className="card" style={{ padding: '1.2rem', borderLeft: '4px solid #3B82F6' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.8rem', background: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>NUEVO PEDIDO</span>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: '700' }}>${order.total}</span>
+                                            </div>
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <h4 style={{ fontSize: '1.1rem', fontWeight: '700' }}>{order.restaurant?.name}</h4>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem', color: '#64748B', fontSize: '0.9rem' }}>
+                                                    <MapPin size={16} /> {order.customer?.address || 'Dirección del cliente'}
+                                                </div>
+                                            </div>
+                                            <button
+                                                className="btn"
+                                                style={{ width: '100%', background: '#3B82F6', color: 'white', fontWeight: '700' }}
+                                                onClick={() => assignToMe(order.id)}
+                                            >
+                                                Aceptar Pedido
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'orders' && (
+                        <div className="fade-in" style={{ padding: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+                                    <Package size={20} color="#10B981" /> Mis Pedidos
+                                </h3>
+                                <span style={{ fontSize: '0.85rem', color: '#64748B' }}>{activeOrders.length} activos</span>
+                            </div>
+
+                            {activeOrders.length === 0 ? (
+                                <div style={{ textAlign: 'center', marginTop: '3rem', color: '#94A3B8', padding: '2rem', background: 'white', borderRadius: '20px' }}>
+                                    <p>No tienes pedidos activos. Ve a "Disponibles" para tomar uno.</p>
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                                    {availableOrders.map(order => (
+                                    {activeOrders.map(order => (
                                         <div key={order.id} className="card fade-in" style={{ padding: '1.2rem', position: 'relative', overflow: 'hidden' }}>
-                                            <div style={{ position: 'absolute', top: 0, right: 0, padding: '4px 12px', background: order.status === 'ready' ? '#FEF3C7' : '#DBEAFE', color: order.status === 'ready' ? '#D97706' : '#1E40AF', fontSize: '0.7rem', fontWeight: '700', borderBottomLeftRadius: '12px' }}>
-                                                {order.status === 'ready' ? 'LISTO PARA RECOGER' : 'EN CAMINO'}
+                                            <div style={{ position: 'absolute', top: 0, right: 0, padding: '4px 12px', background: order.status === 'READY' ? '#FEF3C7' : '#DBEAFE', color: order.status === 'READY' ? '#D97706' : '#1E40AF', fontSize: '0.7rem', fontWeight: '700', borderBottomLeftRadius: '12px' }}>
+                                                {order.status === 'READY' ? 'LISTO PARA RECOGER' : 'EN CAMINO'}
                                             </div>
 
                                             <div style={{ display: 'flex', alignItems: 'start', gap: '1rem', marginBottom: '1.2rem', marginTop: '0.5rem' }}>
@@ -108,27 +297,30 @@ export default function DeliveryApp() {
                                                     <Navigation size={24} color="#10B981" />
                                                 </div>
                                                 <div>
-                                                    <h4 style={{ fontSize: '1.1rem', fontWeight: '700' }}>{order.restaurant}</h4>
-                                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Tlapa de Comonfort, Centro</p>
+                                                    <h4 style={{ fontSize: '1.1rem', fontWeight: '700' }}>{order.restaurant?.name || 'Restaurante'}</h4>
+                                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Pedido #{order.id.slice(0, 8)}</p>
                                                 </div>
                                             </div>
 
                                             <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                                     <span style={{ fontSize: '0.85rem', color: '#64748B' }}>Cliente:</span>
-                                                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{order.customer}</span>
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{order.customer?.name || 'Cliente'}</span>
                                                 </div>
                                                 <div style={{ fontSize: '0.85rem', color: '#1E293B', fontStyle: 'italic' }}>
-                                                    "{order.items}"
+                                                    {order.items?.map(i => `${i.quantity}x ${i.menuItem?.name}`).join(', ')}
+                                                </div>
+                                                <div style={{ marginTop: '0.5rem', textAlign: 'right', fontWeight: '700' }}>
+                                                    ${order.total}
                                                 </div>
                                             </div>
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                                {order.status === 'ready' ? (
+                                                {order.status === 'READY' || order.status === 'PREPARING' ? (
                                                     <button
                                                         className="btn"
                                                         style={{ flex: 1, background: '#10B981', color: 'white', fontWeight: '700' }}
-                                                        onClick={() => updateOrderStatus(order.id, 'delivering')}
+                                                        onClick={() => handleUpdateStatus(order.id, 'DELIVERING')}
                                                     >
                                                         Recoger Pedido
                                                     </button>
@@ -138,28 +330,8 @@ export default function DeliveryApp() {
                                                             className="btn"
                                                             style={{ background: '#25D366', color: 'white', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                                                             onClick={() => {
-                                                                // Get current location and share via WhatsApp
-                                                                if (navigator.geolocation) {
-                                                                    navigator.geolocation.getCurrentPosition(
-                                                                        (position) => {
-                                                                            const lat = position.coords.latitude;
-                                                                            const lng = position.coords.longitude;
-                                                                            const message = `¡Hola! Soy ${deliveryUser.name}, tu repartidor de Tlapa Comida 🛵\n\nEstoy en camino con tu pedido #${order.id}\n\nMi ubicación actual: https://www.google.com/maps?q=${lat},${lng}\n\n¡Llegaré pronto! 😊`;
-                                                                            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                                                                            window.open(whatsappUrl, '_blank');
-                                                                        },
-                                                                        (error) => {
-                                                                            // Fallback if location is not available
-                                                                            const message = `¡Hola! Soy ${deliveryUser.name}, tu repartidor de Tlapa Comida 🛵\n\nEstoy en camino con tu pedido #${order.id}\n\n¡Llegaré pronto! 😊`;
-                                                                            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                                                                            window.open(whatsappUrl, '_blank');
-                                                                        }
-                                                                    );
-                                                                } else {
-                                                                    const message = `¡Hola! Soy ${deliveryUser.name}, tu repartidor de Tlapa Comida 🛵\n\nEstoy en camino con tu pedido #${order.id}\n\n¡Llegaré pronto! 😊`;
-                                                                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                                                                    window.open(whatsappUrl, '_blank');
-                                                                }
+                                                                const message = `¡Hola! Soy ${deliveryUser.name}, tu repartidor 🛵\n\nEstoy en camino con tu pedido #${order.id.slice(0, 4)}\n\n¡Llegaré pronto! 😊`;
+                                                                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
                                                             }}
                                                         >
                                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -170,7 +342,7 @@ export default function DeliveryApp() {
                                                         <button
                                                             className="btn"
                                                             style={{ background: '#1E293B', color: 'white', fontWeight: '700' }}
-                                                            onClick={() => updateOrderStatus(order.id, 'completed')}
+                                                            onClick={() => handleUpdateStatus(order.id, 'COMPLETED')}
                                                         >
                                                             Marcar como Entregado
                                                         </button>
@@ -183,7 +355,7 @@ export default function DeliveryApp() {
                             )}
                         </div>
                     )}
-                </div>
+                </>
             )}
 
             {activeTab === 'profile' && (
@@ -199,19 +371,11 @@ export default function DeliveryApp() {
                                     </div>
                                 )}
                             </div>
-                            <label style={{ position: 'absolute', bottom: '0', right: '0', background: '#10B981', color: 'white', padding: '0.6rem', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                <Camera size={18} />
-                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                        const url = URL.createObjectURL(file);
-                                        updateDeliveryRider(deliveryUser.id, { image: url });
-                                    }
-                                }} />
-                            </label>
                         </div>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{deliveryUser.name}</h2>
-                        <p style={{ color: '#64748B' }}>{deliveryUser.email}</p>
+                        <label style={{ background: '#10B981', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>
+                            Repartidor Verificado
+                        </label>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
@@ -224,21 +388,6 @@ export default function DeliveryApp() {
                             <Navigation size={24} color="#3B82F6" style={{ margin: '0 auto 0.5rem' }} />
                             <h3 style={{ fontSize: '1.4rem', fontWeight: '800' }}>4.9</h3>
                             <p style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>CALIFICACIÓN</p>
-                        </div>
-                    </div>
-
-                    <div className="card" style={{ marginBottom: '2rem' }}>
-                        <div style={{ padding: '1rem 0', borderBottom: '1px solid #F1F5F9' }}>
-                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600', marginBottom: '0.2rem' }}>TELÉFONO</p>
-                            <p style={{ fontWeight: '600' }}>{deliveryUser.phone}</p>
-                        </div>
-                        <div style={{ padding: '1rem 0', borderBottom: '1px solid #F1F5F9' }}>
-                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600', marginBottom: '0.2rem' }}>DIRECCIÓN</p>
-                            <p style={{ fontWeight: '600' }}>{deliveryUser.address}</p>
-                        </div>
-                        <div style={{ padding: '1rem 0' }}>
-                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600', marginBottom: '0.2rem' }}>RFC</p>
-                            <p style={{ fontWeight: '600' }}>{deliveryUser.rfc}</p>
                         </div>
                     </div>
 
@@ -255,7 +404,14 @@ export default function DeliveryApp() {
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'orders' ? '#10B981' : '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                     <Home size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '700' }}>Pedidos</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '700' }}>Mis Pedidos</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('available')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'available' ? '#3B82F6' : '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                    <Layers size={24} />
+                    <span style={{ fontSize: '0.7rem', fontWeight: '700', color: activeTab === 'available' ? '#3B82F6' : '#94A3B8' }}>Disponibles</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('profile')}

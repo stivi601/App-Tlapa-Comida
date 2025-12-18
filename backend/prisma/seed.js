@@ -9,13 +9,14 @@ async function main() {
     await prisma.order.deleteMany();
     await prisma.menuItem.deleteMany();
     await prisma.restaurant.deleteMany();
+    await prisma.deliveryRider.deleteMany();
 
     // 1. Tacos El Paisa
     const tacos = await prisma.restaurant.create({
         data: {
             name: 'Tacos El Paisa',
             username: 'paisa',
-            password: '123', // En prod deberia ser hash
+            password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W', // hash de '123'
             image: 'https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?w=500',
             rating: 4.8,
             time: '15-25 min',
@@ -54,7 +55,7 @@ async function main() {
         data: {
             name: 'Burger King Tlapa',
             username: 'bk',
-            password: '123',
+            password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W',
             image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500',
             rating: 4.5,
             time: '30-45 min',
@@ -86,7 +87,7 @@ async function main() {
         data: {
             name: 'Pizza Hut',
             username: 'pizza',
-            password: '123',
+            password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W',
             image: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=500',
             rating: 4.2,
             time: '25-40 min',
@@ -106,8 +107,22 @@ async function main() {
         }
     });
 
+    // 4. Repartidores
+    const rider1 = await prisma.deliveryRider.create({
+        data: {
+            name: 'Carlos Veloz',
+            username: 'carlos',
+            password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W',
+            phone: '7571234567',
+            isOnline: true,
+            totalDeliveries: 154,
+            image: 'https://randomuser.me/api/portraits/men/32.jpg'
+        }
+    });
+
     console.log('✅ Seed completado!');
     console.log(`🍔 Restaurantes creados: ${tacos.name}, ${burger.name}, ${pizza.name}`);
+    console.log(`🛵 Repartidor creado: ${rider1.name} (user: carlos, pass: 123)`);
 }
 
 main()

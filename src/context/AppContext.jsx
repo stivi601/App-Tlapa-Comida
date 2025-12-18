@@ -60,11 +60,33 @@ export const AppProvider = ({ children }) => {
     }, []);
 
     // Pedidos activos en el sistema
-    const [orders, setOrders] = useState([
-        { id: 101, customer: "Juan Perez", restaurant: "Tacos El Paisa", items: "3x Tacos Pastor", total: 150, status: ORDER_STATUS.PENDING, time: "Hace 5 min" },
-        { id: 102, customer: "Ana Garcia", restaurant: "Burger King Tlapa", items: "1x Whopper Combo", total: 180, status: ORDER_STATUS.PREPARING, time: "Hace 15 min" },
-        { id: 103, customer: "Maria Lopez", restaurant: "Tacos El Paisa", items: "2x Combo Especial, 1x Horchata", total: 225, status: ORDER_STATUS.READY, time: "Hace 2 min" }
-    ]);
+    // Pedidos activos en el sistema
+    const [orders, setOrders] = useState([]);
+
+    // Cargar pedidos del usuario
+    useEffect(() => {
+        const fetchMyOrders = async () => {
+            if (!customerUser?.token) return;
+            try {
+                const res = await fetch('http://localhost:3000/api/orders/my-orders', {
+                    headers: { 'Authorization': `Bearer ${customerUser.token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+
+                    // Formatear para frontend
+                    const formatted = data.map(o => ({
+                        ...o,
+                        customer: o.customer?.name || "Yo",
+                        restaurant: o.restaurant?.name,
+                        items: o.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ')
+                    }));
+                    setOrders(formatted);
+                }
+            } catch (e) { console.error(e); }
+        };
+        fetchMyOrders();
+    }, [customerUser]);
 
     // Carrito de compras del cliente actual
     const [cart, setCart] = useState({ restaurantName: null, items: [], total: 0 });
@@ -117,27 +139,60 @@ export const AppProvider = ({ children }) => {
         { id: 1, title: '¡Bienvenido!', message: 'Gracias por descargar Tlapa Comida.', date: 'Ahora' }
     ]);
 
-    const loginCustomer = (method, data) => {
-        const user = registeredUsers.find(u => u.email === data.email);
-        if (user) {
-            setCustomerUser(user);
+    const loginCustomer = async (method, data) => {
+        try {
+            // Asumimos login con email/password por ahora para simplificar la integración con backend existente
+            // Si el frontend manda 'method' phone, tendríamos que adaptar el backend o el form.
+            // Por ahora mapeamos data.email y password (que falta en el form login, ojo).
+            // Si es login sin password (solo email/phone), necesitamos ajustar.
+            // Para el MVP, usaremos la ruta de registro/login normal.
+
+            const payload = {
+                email: data.email,
+                password: data.password || '123456' // Password default si el UI no lo pide aun
+            };
+
+            const res = await fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error);
+
+            setCustomerUser({ ...result.user, token: result.token });
             return true;
+        } catch (error) {
+            console.error("Login error", error);
+            alert(error.message);
+            return false;
         }
-        // Fallback for mock simplicity if not found
-        const newUser = { id: 'cust1', name: 'Juan Perez', email: data.email || 'juan@example.com', phone: data.phone || '555-1234' };
-        setCustomerUser(newUser);
-        return true;
     };
 
-    const registerCustomer = (data) => {
-        const newUser = {
-            id: Date.now().toString(),
-            ...data,
-            date: new Date().toISOString().split('T')[0]
-        };
-        setRegisteredUsers([...registeredUsers, newUser]);
-        setCustomerUser(newUser);
-        return true;
+    const registerCustomer = async (data) => {
+        try {
+            const res = await fetch('http://localhost:3000/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: data.name,
+                    email: data.email,
+                    password: data.password || '123456',
+                    phone: data.phone
+                })
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error);
+
+            setCustomerUser({ ...result.user, token: result.token });
+            return true;
+        } catch (error) {
+            console.error("Register error", error);
+            alert(error.message);
+            return false;
+        }
     };
 
     const logoutCustomer = () => setCustomerUser(null);
@@ -224,24 +279,38 @@ export const AppProvider = ({ children }) => {
     };
 
 
-    const addToCart = (itemName, restaurantName, price) => {
+    const addToCart = (item, restaurantName, price) => {
+        // Validación: Solo un restaurante a la vez
+        if (cart.restaurantId && cart.restaurantId !== item.restaurantId) {
+            // Nota: item.restaurantId debe venir del objeto si existe, o usamos restaurantName para comparar por ahora
+            // Si el objeto item viene de selectedRestaurant.menu, no siempre trae restaurantId explícito en el JSON anidado
+            // Compararemos por nombre que es lo que teníamos, o id si pasamos el id del restaurante.
+        }
+
+        // Mejor usamos el nombre por compatibilidad con código existente, pero guardamos el ID del restaurante si podemos.
+        // Asumiremos que el frontend limpia el carrito si cambia de restaurante manualmente.
         if (cart.restaurantName && cart.restaurantName !== restaurantName) {
             return false;
         }
 
-        const existingItemIndex = cart.items.findIndex(i => i.name === itemName);
+        const existingItemIndex = cart.items.findIndex(i => i.id === item.id); // Usar ID para unicidad
         let newItems = [];
 
         if (existingItemIndex > -1) {
-            newItems = cart.items.map((item, idx) =>
-                idx === existingItemIndex ? { ...item, quantity: item.quantity + 1 } : item
+            newItems = cart.items.map((cartItem, idx) =>
+                idx === existingItemIndex ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
             );
         } else {
-            newItems = [...cart.items, { name: itemName, price, quantity: 1 }];
+            // Guardamos ID, nombre, precio para el POST del backend
+            newItems = [...cart.items, { id: item.id, name: item.name, price, quantity: 1 }];
         }
+
+        // Encontrar el restaurante para obtener su ID (necesario para el backend order)
+        const restId = restaurants.find(r => r.name === restaurantName)?.id;
 
         setCart({
             restaurantName,
+            restaurantId: restId,
             items: newItems,
             total: newItems.reduce((sum, i) => sum + (i.price * i.quantity), 0)
         });
@@ -249,6 +318,7 @@ export const AppProvider = ({ children }) => {
     };
 
     const decrementFromCart = (itemName) => {
+        // FIXME: Ajustar a itemID cuando refactoricemos todo, usando name por ahora compatible
         const existingItemIndex = cart.items.findIndex(i => i.name === itemName);
         if (existingItemIndex === -1) return;
 
@@ -281,22 +351,59 @@ export const AppProvider = ({ children }) => {
         });
     };
 
-    const clearCart = () => setCart({ restaurantName: null, items: [], total: 0 });
+    const clearCart = () => setCart({ restaurantId: null, restaurantName: null, items: [], total: 0 });
 
-    const placeOrder = () => {
+    const placeOrder = async () => {
         if (cart.items.length === 0) return;
-        const newOrder = {
-            id: Date.now(),
-            customer: customerUser?.name || "Usuario Actual",
-            restaurant: cart.restaurantName,
-            items: cart.items.map(i => `${i.quantity}x ${i.name}`).join(', '),
-            total: cart.total,
-            status: ORDER_STATUS.PENDING,
-            time: "Ahora mismo",
-            rating: null
-        };
-        setOrders([newOrder, ...orders]);
-        clearCart();
+        if (!customerUser || !customerUser.token) {
+            alert("Debes iniciar sesión para ordenar");
+            return;
+        }
+
+        try {
+            const payload = {
+                restaurantId: cart.restaurantId,
+                total: cart.total,
+                items: cart.items.map(i => ({
+                    id: i.id,
+                    quantity: i.quantity,
+                    price: i.price
+                }))
+            };
+
+            const res = await fetch('http://localhost:3000/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${customerUser.token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Error al crear pedido');
+            }
+
+            const newOrder = await res.json();
+
+            // Agregar al estado local mockeando la estructura visual si difiere
+            const formattedOrder = {
+                ...newOrder,
+                time: "Ahora mismo",
+                customer: customerUser.name,
+                restaurant: cart.restaurantName,
+                // Items string para display rápido en frontend existente
+                items: cart.items.map(i => `${i.quantity}x ${i.name}`).join(', ')
+            };
+
+            setOrders([formattedOrder, ...orders]);
+            clearCart();
+            alert("¡Pedido realizado con éxito!");
+        } catch (error) {
+            console.error("Error placeOrder", error);
+            alert("Error al realizar el pedido: " + error.message);
+        }
     };
 
     const cancelOrder = (orderId) => {
