@@ -1,4 +1,4 @@
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import { ORDER_STATUS } from '../constants/orderStatus';
 
 const AppContext = createContext();
@@ -16,70 +16,48 @@ export const AppProvider = ({ children }) => {
     // ESTADO GLOBAL - DATOS MOCK
     // ============================================
 
-    // Categorías de restaurantes disponibles
+    // Listas dinámicas
     const [restaurantCategories, setRestaurantCategories] = useState([
         'Tacos', 'Pizzas', 'Hamburguesas', 'Japonesa',
         'Postres', 'Cafetería', 'Mexicana', 'Pollos'
     ]);
 
-    // Lista de restaurantes registrados en la plataforma
-    const [restaurants, setRestaurants] = useState([
-        {
-            id: 1,
-            name: "Tacos El Paisa",
-            username: "paisa",
-            password: "123",
-            rating: 4.8,
-            time: "15-25 min",
-            deliveryFee: 15,
-            image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=500&q=60",
-            categories: ["Tacos", "Mexicana"],
-            menu: [
-                { name: "Combo Especial", price: 100, desc: "Incluye bebida y complemento", category: "Comida" },
-                { name: "Paquete Familiar", price: 150, desc: "Para compartir", category: "Comida" },
-                { name: "Horchata", price: 25, desc: "500ml", category: "Bebidas" }
-            ]
-        },
-        {
-            id: 2,
-            name: "Burger King Tlapa",
-            username: "bk",
-            password: "123",
-            rating: 4.5,
-            time: "30-45 min",
-            deliveryFee: 20,
-            image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=60",
-            categories: ["Hamburguesas"],
-            menu: [
-                { name: "Whopper Combo", price: 180, desc: "Con papas y refresco", category: "Comida" },
-                { name: "Sundae", price: 40, desc: "Chocolate", category: "Postres" }
-            ]
-        },
-        {
-            id: 3,
-            name: "Pizza Hut",
-            username: "pizza",
-            password: "123",
-            rating: 4.3,
-            time: "25-40 min",
-            deliveryFee: 25,
-            image: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=500&q=60",
-            categories: ["Pizzas"],
-            menu: []
-        },
-        {
-            id: 4,
-            name: "Sushi Roll",
-            username: "sushi",
-            password: "123",
-            rating: 4.7,
-            time: "30-50 min",
-            deliveryFee: 30,
-            image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=500&q=60",
-            categories: ["Japonesa"],
-            menu: []
-        },
-    ]);
+    // ESTADO DE RESTAURANTES (Cargado del Backend)
+    const [restaurants, setRestaurants] = useState([]);
+    const [loadingRestaurants, setLoadingRestaurants] = useState(true);
+    const [errorRestaurants, setErrorRestaurants] = useState(null);
+
+    // Cargar restaurantes desde el Backend al iniciar
+    useEffect(() => {
+        const fetchRestaurants = async () => {
+            try {
+                // URL directa al backend local por ahora
+                const response = await fetch('http://localhost:3000/api/restaurants');
+                if (!response.ok) throw new Error('Error al cargar restaurantes');
+                const data = await response.json();
+
+                setRestaurants(data);
+
+                // Actualizar categorías dinámicamente basado en los restaurantes
+                const allCats = new Set([...restaurantCategories]);
+                data.forEach(r => {
+                    if (Array.isArray(r.categories)) {
+                        r.categories.forEach(c => allCats.add(c));
+                    }
+                });
+                setRestaurantCategories(Array.from(allCats));
+
+            } catch (err) {
+                console.error("Error fetching restaurants:", err);
+                setErrorRestaurants(err.message);
+                // Fallback a datos vacíos o mostrar error
+            } finally {
+                setLoadingRestaurants(false);
+            }
+        };
+
+        fetchRestaurants();
+    }, []);
 
     // Pedidos activos en el sistema
     const [orders, setOrders] = useState([

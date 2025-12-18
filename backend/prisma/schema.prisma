@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // ============================================
@@ -21,7 +21,7 @@ model User {
   password      String    // Hash bcrypt
   name          String
   image         String?
-  role          UserRole  @default(CUSTOMER)
+  role          String    @default("CUSTOMER") // "CUSTOMER" o "ADMIN"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -30,11 +30,6 @@ model User {
   orders        Order[]
   
   @@map("users")
-}
-
-enum UserRole {
-  CUSTOMER
-  ADMIN
 }
 
 // ============================================
@@ -65,7 +60,7 @@ model Restaurant {
   rating       Float          @default(0)
   time         String         // "20-30 min"
   deliveryFee  Float
-  categories   String[]       // Array de categorías
+  categories   String         // JSON string de categorías
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   
@@ -111,7 +106,7 @@ model Order {
   riderId      String?
   rider        DeliveryRider? @relation(fields: [riderId], references: [id])
   
-  status       OrderStatus @default(PENDING)
+  status       String      @default("PENDING")
   total        Float
   rating       Int?        // 1-5 estrellas
   
@@ -122,15 +117,6 @@ model Order {
   items        OrderItem[]
   
   @@map("orders")
-}
-
-enum OrderStatus {
-  PENDING
-  PREPARING
-  READY
-  DELIVERING
-  COMPLETED
-  CANCELLED
 }
 
 // ============================================
