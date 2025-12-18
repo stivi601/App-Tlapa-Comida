@@ -1,11 +1,28 @@
 import { createContext, useState, useContext } from 'react';
+import { ORDER_STATUS } from '../constants/orderStatus';
 
 const AppContext = createContext();
 
+/**
+ * AppProvider - Proveedor del contexto global de la aplicación
+ * Maneja todo el estado compartido entre los 4 módulos:
+ * - Customer App
+ * - Restaurant App
+ * - Delivery App
+ * - Admin App
+ */
 export const AppProvider = ({ children }) => {
-    // Mock Data
-    const [restaurantCategories, setRestaurantCategories] = useState(['Tacos', 'Pizzas', 'Hamburguesas', 'Japonesa', 'Postres', 'Cafetería', 'Mexicana', 'Pollos']);
+    // ============================================
+    // ESTADO GLOBAL - DATOS MOCK
+    // ============================================
 
+    // Categorías de restaurantes disponibles
+    const [restaurantCategories, setRestaurantCategories] = useState([
+        'Tacos', 'Pizzas', 'Hamburguesas', 'Japonesa',
+        'Postres', 'Cafetería', 'Mexicana', 'Pollos'
+    ]);
+
+    // Lista de restaurantes registrados en la plataforma
     const [restaurants, setRestaurants] = useState([
         {
             id: 1,
@@ -64,15 +81,19 @@ export const AppProvider = ({ children }) => {
         },
     ]);
 
+    // Pedidos activos en el sistema
     const [orders, setOrders] = useState([
-        { id: 101, customer: "Juan Perez", restaurant: "Tacos El Paisa", items: "3x Tacos Pastor", total: 150, status: "pending", time: "Hace 5 min" },
-        { id: 102, customer: "Ana Garcia", restaurant: "Burger King Tlapa", items: "1x Whopper Combo", total: 180, status: "preparing", time: "Hace 15 min" },
-        { id: 103, customer: "Maria Lopez", restaurant: "Tacos El Paisa", items: "2x Combo Especial, 1x Horchata", total: 225, status: "ready", time: "Hace 2 min" }
+        { id: 101, customer: "Juan Perez", restaurant: "Tacos El Paisa", items: "3x Tacos Pastor", total: 150, status: ORDER_STATUS.PENDING, time: "Hace 5 min" },
+        { id: 102, customer: "Ana Garcia", restaurant: "Burger King Tlapa", items: "1x Whopper Combo", total: 180, status: ORDER_STATUS.PREPARING, time: "Hace 15 min" },
+        { id: 103, customer: "Maria Lopez", restaurant: "Tacos El Paisa", items: "2x Combo Especial, 1x Horchata", total: 225, status: ORDER_STATUS.READY, time: "Hace 2 min" }
     ]);
 
+    // Carrito de compras del cliente actual
     const [cart, setCart] = useState({ restaurantName: null, items: [], total: 0 });
 
-    // --- Admin Functions ---
+    // ============================================
+    // FUNCIONES DE ADMINISTRACIÓN
+    // ============================================
     const addRestaurantCategory = (name) => {
         if (!restaurantCategories.includes(name)) {
             setRestaurantCategories([...restaurantCategories, name]);
@@ -102,7 +123,9 @@ export const AppProvider = ({ children }) => {
     };
 
 
-    // --- Customer & Admin Notifications ---
+    // ============================================
+    // ESTADO Y FUNCIONES DE CLIENTES
+    // ============================================
     const [customerUser, setCustomerUser] = useState(null);
     const [customerAddresses, setCustomerAddresses] = useState([
         { id: 1, label: 'Casa', address: 'Calle 5 Poniente #12, Centro' },
@@ -169,7 +192,9 @@ export const AppProvider = ({ children }) => {
         setSystemNotifications([newNotif, ...systemNotifications]);
     };
 
-    // --- Delivery & Riders ---
+    // ============================================
+    // ESTADO Y FUNCIONES DE REPARTIDORES
+    // ============================================
     const [deliveryRiders, setDeliveryRiders] = useState([
         { id: 1, name: 'Carlos Velasquez', username: 'carlos', password: '123', phone: '757-123-4567', rfc: 'VEVC900101', email: 'carlos@tlapa.com', address: 'Calle Principal #10', image: null, totalDeliveries: 5 }
     ]);
@@ -213,7 +238,9 @@ export const AppProvider = ({ children }) => {
         }));
     };
 
-    // --- Auth Functions ---
+    // ============================================
+    // FUNCIONES DE AUTENTICACIÓN
+    // ============================================
     const loginRestaurant = (username, password) => {
         return restaurants.find(r => r.username === username && r.password === password) || null;
     };
@@ -286,7 +313,7 @@ export const AppProvider = ({ children }) => {
             restaurant: cart.restaurantName,
             items: cart.items.map(i => `${i.quantity}x ${i.name}`).join(', '),
             total: cart.total,
-            status: "pending",
+            status: ORDER_STATUS.PENDING,
             time: "Ahora mismo",
             rating: null
         };
@@ -299,14 +326,14 @@ export const AppProvider = ({ children }) => {
     };
 
     const confirmOrderReceived = (orderId) => {
-        setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'completed' } : o));
+        setOrders(orders.map(o => o.id === orderId ? { ...o, status: ORDER_STATUS.COMPLETED } : o));
     };
 
     const updateOrderStatus = (orderId, status) => {
         setOrders(orders.map(o => {
             if (o.id === orderId) {
                 // If marking as completed, increment rider count
-                if (status === 'completed' && deliveryUser) {
+                if (status === ORDER_STATUS.COMPLETED && deliveryUser) {
                     updateDeliveryRider(deliveryUser.id, { totalDeliveries: (deliveryUser.totalDeliveries || 0) + 1 });
                 }
                 return { ...o, status, riderId: deliveryUser?.id };

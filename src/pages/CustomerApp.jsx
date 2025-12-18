@@ -1,6 +1,15 @@
+
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { MapPin, Search, Star, Clock, ShoppingBag, Home, User, ArrowLeft, Plus, Minus, ShoppingCart, Trash2, Check, X, LogOut, Smartphone, Mail, Map, Bell, Edit2, Camera } from 'lucide-react';
+import {
+    MapPin, Search, Star, Clock, ShoppingBag, Home, User,
+    ArrowLeft, Plus, Minus, ShoppingCart, Trash2, Check,
+    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map
+} from 'lucide-react';
+
+// Helpers & Constants
+import { formatPrice } from '../utils/helpers';
+import { ORDER_STATUS, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../constants/orderStatus';
 
 export default function CustomerApp() {
     const {
@@ -232,7 +241,7 @@ export default function CustomerApp() {
                         </div>
                     </div>
                     <p style={{ color: 'var(--text-light)', marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
-                        <span>{selectedRestaurant.categories?.join(', ')}</span> • <span>{selectedRestaurant.time}</span> • <span>Envío ${selectedRestaurant.deliveryFee}</span>
+                        <span>{selectedRestaurant.categories?.join(', ')}</span> • <span>{selectedRestaurant.time}</span> • <span>Envío {formatPrice(selectedRestaurant.deliveryFee)}</span>
                     </p>
 
                     <h3 style={{ marginBottom: '1.2rem', fontSize: '1.2rem', fontWeight: '800' }}>Nuestro Menú</h3>
@@ -258,7 +267,7 @@ export default function CustomerApp() {
                                                 <div style={{ flex: 1 }}>
                                                     <h4 style={{ marginBottom: '0.4rem', fontSize: '1.05rem', fontWeight: '700' }}>{item.name}</h4>
                                                     <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', lineHeight: '1.4', marginBottom: '0.6rem' }}>{item.desc}</p>
-                                                    <p style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>${item.price}</p>
+                                                    <p style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>{formatPrice(item.price)}</p>
                                                 </div>
 
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: qty > 0 ? '#FFF7ED' : 'transparent', padding: '4px', borderRadius: '30px' }}>
@@ -443,7 +452,7 @@ export default function CustomerApp() {
                                         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>
                                             <span>{rest.categories?.join(', ')}</span>
                                             <span>•</span>
-                                            <span>Envío: ${rest.deliveryFee}</span>
+                                            <span>Envío: {formatPrice(rest.deliveryFee)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -475,7 +484,7 @@ export default function CustomerApp() {
                                     <div key={i} className="card bounce" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
                                         <div>
                                             <p style={{ fontWeight: '700', fontSize: '1rem' }}>{item.name}</p>
-                                            <p style={{ color: 'var(--primary)', fontWeight: '600' }}>${item.price * item.quantity}</p>
+                                            <p style={{ color: 'var(--primary)', fontWeight: '600' }}>{formatPrice(item.price * item.quantity)}</p>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: '#F8FAFC', padding: '4px', borderRadius: '30px' }}>
                                             <button
@@ -498,7 +507,7 @@ export default function CustomerApp() {
                             <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
                                     <span>Total</span>
-                                    <span>${cart.total}</span>
+                                    <span>{formatPrice(cart.total)}</span>
                                 </div>
                                 <button onClick={() => { placeOrder(); setActiveTab('orders'); }} className="btn btn-primary" style={{ width: '100%' }}>
                                     Confirmar Pedido
@@ -518,7 +527,7 @@ export default function CustomerApp() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                     <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{order.restaurant}</span>
                                     <div style={{ textAlign: 'right' }}>
-                                        <span style={{ color: 'var(--primary)', fontWeight: '600', display: 'block' }}>${order.total}</span>
+                                        <span style={{ color: 'var(--primary)', fontWeight: '600', display: 'block' }}>{formatPrice(order.total)}</span>
                                         <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>#{order.id}</span>
                                     </div>
                                 </div>
@@ -527,41 +536,39 @@ export default function CustomerApp() {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.5rem' }}>
                                     <span style={{
-                                        background: order.status === 'pending' ? '#FEF3C7' : (order.status === 'completed' ? '#DBEAFE' : '#ECFDF5'),
-                                        color: order.status === 'pending' ? '#D97706' : (order.status === 'completed' ? '#1E40AF' : '#059669'),
+                                        background: ORDER_STATUS_COLORS[order.status] ? ORDER_STATUS_COLORS[order.status] + '20' : '#F3F4F6',
+                                        color: ORDER_STATUS_COLORS[order.status] || '#6B7280',
                                         padding: '4px 10px',
                                         borderRadius: '20px',
                                         fontWeight: '500',
                                         textTransform: 'capitalize'
                                     }}>
-                                        {order.status === 'pending' ? 'Pendiente' :
-                                            order.status === 'completed' ? 'Entregado' :
-                                                'En Proceso'}
+                                        {ORDER_STATUS_LABELS[order.status] || order.status}
                                     </span>
 
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {order.status === 'pending' && (
+                                        {order.status === ORDER_STATUS.PENDING && (
                                             <button
                                                 onClick={() => cancelOrder(order.id)}
                                                 style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                                                 <Trash2 size={14} /> Cancelar
                                             </button>
                                         )}
-                                        {order.status !== 'pending' && order.status !== 'completed' && (
+                                        {order.status !== ORDER_STATUS.PENDING && order.status !== ORDER_STATUS.COMPLETED && (
                                             <button
                                                 onClick={() => setRatingModalOrder(order)}
                                                 style={{ border: 'none', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                                                 <Check size={14} /> Confirmar Recibo
                                             </button>
                                         )}
-                                        {order.status === 'completed' && !order.rating && (
+                                        {order.status === ORDER_STATUS.COMPLETED && !order.rating && (
                                             <button
                                                 onClick={() => { setSelectedStars(0); setRatingModalOrder(order); }}
                                                 style={{ border: 'none', background: '#FEF3C7', color: '#D97706', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                                                 <Star size={14} /> Calificar
                                             </button>
                                         )}
-                                        {order.status === 'completed' && order.rating && (
+                                        {order.status === ORDER_STATUS.COMPLETED && order.rating && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '0.85rem', fontWeight: '600' }}>
                                                 Tu calificación: {order.rating} <Star size={14} fill="#059669" />
                                             </div>
@@ -576,6 +583,7 @@ export default function CustomerApp() {
 
             {activeTab === 'profile' && (
                 <div className="fade-in" style={{ padding: '2rem 1rem' }}>
+                    {/* ... (contenido del perfil existente) ... */}
                     <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                         <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 1.5rem' }}>
                             <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#F1F5F9', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
@@ -650,6 +658,78 @@ export default function CustomerApp() {
                     </button>
                 </div>
             )}
+
+            {/* FLOATING ACTIVE ORDER STATUS BAR */}
+            {(() => {
+                // Encontrar el primer pedido activo (no completado ni cancelado)
+                const activeOrder = orders.find(o =>
+                    o.status !== ORDER_STATUS.COMPLETED &&
+                    o.status !== ORDER_STATUS.CANCELLED
+                );
+
+                if (activeOrder) {
+                    return (
+                        <div
+                            className="fade-in-up"
+                            onClick={() => setActiveTab('orders')}
+                            style={{
+                                position: 'fixed',
+                                bottom: '70px', // Justo encima del nav bar
+                                left: '1rem',
+                                right: '1rem',
+                                backgroundColor: 'white',
+                                borderRadius: '16px',
+                                padding: '1rem',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                zIndex: 90,
+                                cursor: 'pointer',
+                                border: '1px solid #F1F5F9'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '50%',
+                                    backgroundColor: ORDER_STATUS_COLORS[activeOrder.status] + '20', // Color con opacidad
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: ORDER_STATUS_COLORS[activeOrder.status]
+                                }}>
+                                    {/* Icono dinámico basado en estado */}
+                                    {activeOrder.status === ORDER_STATUS.PENDING && <Clock size={20} />}
+                                    {activeOrder.status === ORDER_STATUS.PREPARING && <Smartphone size={20} />} {/* ChefHat no importado, usando Smartphone como fallback visual o Clock */}
+                                    {activeOrder.status === ORDER_STATUS.READY && <ShoppingBag size={20} />}
+                                    {activeOrder.status === ORDER_STATUS.DELIVERING && <Map size={20} />}
+                                </div>
+                                <div>
+                                    <p style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1E293B' }}>
+                                        {ORDER_STATUS_LABELS[activeOrder.status]}
+                                    </p>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                                        {activeOrder.restaurant} • {activeOrder.time}
+                                    </p>
+                                </div>
+                            </div>
+                            <div style={{
+                                backgroundColor: ORDER_STATUS_COLORS[activeOrder.status],
+                                color: 'white',
+                                padding: '4px 12px',
+                                borderRadius: '20px',
+                                fontSize: '0.75rem',
+                                fontWeight: '600'
+                            }}>
+                                Ver
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()}
 
             {/* Bottom Nav */}
             <nav style={{
