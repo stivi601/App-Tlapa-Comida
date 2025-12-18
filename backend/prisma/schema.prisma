@@ -1,0 +1,188 @@
+// Esquema de Base de Datos - Tlapa Comida
+// PostgreSQL con Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUARIOS Y AUTENTICACIÓN
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String?   @unique
+  password      String    // Hash bcrypt
+  name          String
+  image         String?
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relaciones
+  addresses     Address[]
+  orders        Order[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+// ============================================
+// DIRECCIONES
+// ============================================
+
+model Address {
+  id        String   @id @default(uuid())
+  label     String   // "Casa", "Trabajo", etc.
+  address   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@map("addresses")
+}
+
+// ============================================
+// RESTAURANTES
+// ============================================
+
+model Restaurant {
+  id           String         @id @default(uuid())
+  username     String         @unique
+  password     String         // Hash bcrypt
+  name         String
+  image        String?
+  rating       Float          @default(0)
+  time         String         // "20-30 min"
+  deliveryFee  Float
+  categories   String[]       // Array de categorías
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  // Relaciones
+  menu         MenuItem[]
+  orders       Order[]
+  riders       DeliveryRider[]
+  
+  @@map("restaurants")
+}
+
+// ============================================
+// MENÚ
+// ============================================
+
+model MenuItem {
+  id           String     @id @default(uuid())
+  name         String
+  description  String?    @map("desc")
+  price        Float
+  category     String
+  image        String?
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  
+  // Relaciones
+  orderItems   OrderItem[]
+  
+  @@map("menu_items")
+}
+
+// ============================================
+// PEDIDOS
+// ============================================
+
+model Order {
+  id           String      @id @default(uuid())
+  customerId   String
+  customer     User        @relation(fields: [customerId], references: [id])
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  riderId      String?
+  rider        DeliveryRider? @relation(fields: [riderId], references: [id])
+  
+  status       OrderStatus @default(PENDING)
+  total        Float
+  rating       Int?        // 1-5 estrellas
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  // Relaciones
+  items        OrderItem[]
+  
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// ITEMS DEL PEDIDO
+// ============================================
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  price      Float    // Precio al momento del pedido
+  
+  @@map("order_items")
+}
+
+// ============================================
+// REPARTIDORES
+// ============================================
+
+model DeliveryRider {
+  id                String     @id @default(uuid())
+  username          String     @unique
+  password          String     // Hash bcrypt
+  name              String
+  phone             String
+  rfc               String?
+  image             String?
+  totalDeliveries   Int        @default(0)
+  isOnline          Boolean    @default(false)
+  assignedRestaurantId String?
+  assignedRestaurant   Restaurant? @relation(fields: [assignedRestaurantId], references: [id])
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  
+  // Relaciones
+  orders            Order[]
+  
+  @@map("delivery_riders")
+}
+
+// ============================================
+// NOTIFICACIONES DEL SISTEMA
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  date      DateTime @default(now())
+  
+  @@map("notifications")
+}
