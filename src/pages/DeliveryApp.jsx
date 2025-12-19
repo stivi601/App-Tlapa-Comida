@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bike, Navigation, Package, User, LogOut, Camera, Home, CheckCircle, MapPin, Layers } from 'lucide-react';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api';
 
 export default function DeliveryApp() {
     const { setDeliveryUser, deliveryUser } = useApp();

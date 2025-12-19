@@ -3,6 +3,8 @@ import { ORDER_STATUS } from '../constants/orderStatus';
 
 const AppContext = createContext();
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 /**
  * AppProvider - Proveedor del contexto global de la aplicación
  * Maneja todo el estado compartido entre los 4 módulos:
@@ -32,7 +34,7 @@ export const AppProvider = ({ children }) => {
         const fetchRestaurants = async () => {
             try {
                 // URL directa al backend local por ahora
-                const response = await fetch('http://localhost:3000/api/restaurants');
+                const response = await fetch(`${API_URL}/api/restaurants`);
                 if (!response.ok) throw new Error('Error al cargar restaurantes');
                 const data = await response.json();
 
@@ -68,7 +70,7 @@ export const AppProvider = ({ children }) => {
         const fetchMyOrders = async () => {
             if (!customerUser?.token) return;
             try {
-                const res = await fetch('http://localhost:3000/api/orders/my-orders', {
+                const res = await fetch(`${API_URL}/api/orders/my-orders`, {
                     headers: { 'Authorization': `Bearer ${customerUser.token}` }
                 });
                 if (res.ok) {
@@ -152,7 +154,7 @@ export const AppProvider = ({ children }) => {
                 password: data.password || '123456' // Password default si el UI no lo pide aun
             };
 
-            const res = await fetch('http://localhost:3000/api/auth/login', {
+            const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -172,7 +174,7 @@ export const AppProvider = ({ children }) => {
 
     const registerCustomer = async (data) => {
         try {
-            const res = await fetch('http://localhost:3000/api/auth/register', {
+            const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -371,7 +373,7 @@ export const AppProvider = ({ children }) => {
                 }))
             };
 
-            const res = await fetch('http://localhost:3000/api/orders', {
+            const res = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

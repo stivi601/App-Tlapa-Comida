@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Users, Store, TrendingUp, DollarSign, Activity, Trash2, Plus, Camera, Bell, Bike, ShieldCheck, Truck, Search } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export default function AdminApp() {
     const {
         restaurants, orders,
@@ -43,7 +45,7 @@ export default function AdminApp() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/admin/stats');
+                const res = await fetch(`${API_URL}/api/admin/stats`);
                 if (res.ok) {
                     const data = await res.json();
                     setStats(data);
