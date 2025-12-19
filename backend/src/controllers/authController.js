@@ -18,15 +18,28 @@ const register = async (req, res) => {
             });
         }
 
-        // Verificar si el usuario ya existe
-        const existingUser = await prisma.user.findUnique({
+        // Verificar si el usuario ya existe por email
+        const existingEmail = await prisma.user.findUnique({
             where: { email }
         });
 
-        if (existingUser) {
+        if (existingEmail) {
             return res.status(400).json({
-                error: 'El email ya está registrado'
+                error: 'Este correo electrónico ya está registrado'
             });
+        }
+
+        // Verificar si el usuario ya existe por teléfono (si se proporcionó)
+        if (phone) {
+            const existingPhone = await prisma.user.findFirst({
+                where: { phone }
+            });
+
+            if (existingPhone) {
+                return res.status(400).json({
+                    error: 'Este número de teléfono ya está registrado'
+                });
+            }
         }
 
         // Hash de la contraseña

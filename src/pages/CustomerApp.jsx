@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import {
     MapPin, Search, Star, Clock, ShoppingBag, Home, User,
     ArrowLeft, Plus, Minus, ShoppingCart, Trash2, Check,
-    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map
+    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map, AlertTriangle
 } from 'lucide-react';
 
 // Helpers & Constants
@@ -35,13 +35,40 @@ export default function CustomerApp() {
     const [authMode, setAuthMode] = useState('login'); // login | register
     const [loginMethod, setLoginMethod] = useState('email'); // email | phone
     const [authData, setAuthData] = useState({ email: '', password: '', name: '', phone: '' });
+    const [authError, setAuthError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleAuth = (e) => {
+    const handleAuth = async (e) => {
         e.preventDefault();
-        if (authMode === 'login') {
-            loginCustomer(loginMethod, authData);
-        } else {
-            registerCustomer(authData);
+        setAuthError(null);
+        setIsSubmitting(true);
+
+        try {
+            let result;
+            if (authMode === 'login') {
+                result = await loginCustomer(loginMethod, authData);
+            } else {
+                // Validación básica frontend
+                if (!authData.name || !authData.email || !authData.password) {
+                    setAuthError("Por favor completa todos los campos requeridos.");
+                    setIsSubmitting(false);
+                    return;
+                }
+                if (authData.password.length < 6) {
+                    setAuthError("La contraseña debe tener al menos 6 caracteres.");
+                    setIsSubmitting(false);
+                    return;
+                }
+                result = await registerCustomer(authData);
+            }
+
+            if (result && !result.success) {
+                setAuthError(result.error || "Ocurrió un error inesperado.");
+            }
+        } catch (err) {
+            setAuthError("Error de conexión con el servidor.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -161,8 +188,47 @@ export default function CustomerApp() {
                             />
                         </div>
 
-                        <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem', padding: '1rem', borderRadius: '14px', fontSize: '1rem' }}>
-                            {authMode === 'login' ? 'Iniciar Sesión' : 'Crear mi cuenta'}
+                        {authError && (
+                            <div className="fade-in" style={{
+                                background: '#FEF2F2',
+                                color: '#EF4444',
+                                padding: '12px',
+                                borderRadius: '12px',
+                                fontSize: '0.9rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                border: '1px solid #FEE2E2',
+                                marginTop: '0.5rem'
+                            }}>
+                                <AlertTriangle size={18} />
+                                <span style={{ fontWeight: '500' }}>{authError}</span>
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={isSubmitting}
+                            style={{
+                                marginTop: '1rem',
+                                padding: '1rem',
+                                borderRadius: '14px',
+                                fontSize: '1rem',
+                                opacity: isSubmitting ? 0.7 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Clock size={18} className="spin" /> Procesando...
+                                </>
+                            ) : (
+                                authMode === 'login' ? 'Iniciar Sesión' : 'Crear mi cuenta'
+                            )}
                         </button>
                     </form>
 

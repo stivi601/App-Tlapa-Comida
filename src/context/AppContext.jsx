@@ -179,11 +179,10 @@ export const AppProvider = ({ children }) => {
             if (!res.ok) throw new Error(result.error);
 
             setCustomerUser({ ...result.user, token: result.token });
-            return true;
+            return { success: true };
         } catch (error) {
             console.error("Login error", error);
-            alert(error.message);
-            return false;
+            return { success: false, error: error.message };
         }
     };
 
@@ -204,11 +203,10 @@ export const AppProvider = ({ children }) => {
             if (!res.ok) throw new Error(result.error);
 
             setCustomerUser({ ...result.user, token: result.token });
-            return true;
+            return { success: true };
         } catch (error) {
             console.error("Register error", error);
-            alert(error.message);
-            return false;
+            return { success: false, error: error.message };
         }
     };
 
