@@ -15,7 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
  */
 export const AppProvider = ({ children }) => {
     // ============================================
-    // ESTADO GLOBAL - DATOS MOCK
+    // ESTADO GLOBAL
     // ============================================
 
     // Listas dinámicas
@@ -29,6 +29,30 @@ export const AppProvider = ({ children }) => {
     const [loadingRestaurants, setLoadingRestaurants] = useState(true);
     const [errorRestaurants, setErrorRestaurants] = useState(null);
 
+    // Usuarios y Autenticación
+    const [customerUser, setCustomerUser] = useState(null);
+    const [deliveryUser, setDeliveryUser] = useState(null);
+
+    // Pedidos y Carrito
+    const [orders, setOrders] = useState([]);
+    const [cart, setCart] = useState({ restaurantName: null, items: [], total: 0 });
+
+    // Datos Adicionales (Direcciones, Notificaciones, etc.)
+    const [customerAddresses, setCustomerAddresses] = useState([
+        { id: 1, label: 'Casa', address: 'Calle 5 Poniente #12, Centro' },
+        { id: 2, label: 'Trabajo', address: 'Av. Universidad #100, Col. Roma' }
+    ]);
+    const [registeredUsers, setRegisteredUsers] = useState([
+        { id: 'cust1', name: 'Juan Perez', email: 'juan@example.com', phone: '555-1234', date: '2025-10-01' },
+        { id: 'cust2', name: 'Ana Garcia', email: 'ana@example.com', phone: '555-4321', date: '2025-11-15' }
+    ]);
+    const [systemNotifications, setSystemNotifications] = useState([
+        { id: 1, title: '¡Bienvenido!', message: 'Gracias por descargar Tlapa Comida.', date: 'Ahora' }
+    ]);
+    const [deliveryRiders, setDeliveryRiders] = useState([
+        { id: 1, name: 'Carlos Velasquez', username: 'carlos', password: '123', phone: '757-123-4567', rfc: 'VEVC900101', email: 'carlos@tlapa.com', address: 'Calle Principal #10', image: null, totalDeliveries: 5 }
+    ]);
+
     // Cargar restaurantes desde el Backend al iniciar
     useEffect(() => {
         const fetchRestaurants = async () => {
@@ -37,17 +61,21 @@ export const AppProvider = ({ children }) => {
                 const response = await fetch(`${API_URL}/api/restaurants`);
                 if (!response.ok) throw new Error('Error al cargar restaurantes');
                 const data = await response.json();
+                if (Array.isArray(data)) {
+                    setRestaurants(data);
 
-                setRestaurants(data);
-
-                // Actualizar categorías dinámicamente basado en los restaurantes
-                const allCats = new Set([...restaurantCategories]);
-                data.forEach(r => {
-                    if (Array.isArray(r.categories)) {
-                        r.categories.forEach(c => allCats.add(c));
-                    }
-                });
-                setRestaurantCategories(Array.from(allCats));
+                    // Actualizar categorías dinámicamente basado en los restaurantes
+                    const allCats = new Set([...restaurantCategories]);
+                    data.forEach(r => {
+                        if (Array.isArray(r.categories)) {
+                            r.categories.forEach(c => allCats.add(c));
+                        }
+                    });
+                    setRestaurantCategories(Array.from(allCats));
+                } else {
+                    console.error("Data received is not an array:", data);
+                    setRestaurants([]);
+                }
 
             } catch (err) {
                 console.error("Error fetching restaurants:", err);
@@ -62,8 +90,6 @@ export const AppProvider = ({ children }) => {
     }, []);
 
     // Pedidos activos en el sistema
-    // Pedidos activos en el sistema
-    const [orders, setOrders] = useState([]);
 
     // Cargar pedidos del usuario
     useEffect(() => {
@@ -76,14 +102,16 @@ export const AppProvider = ({ children }) => {
                 if (res.ok) {
                     const data = await res.json();
 
-                    // Formatear para frontend
-                    const formatted = data.map(o => ({
-                        ...o,
-                        customer: o.customer?.name || "Yo",
-                        restaurant: o.restaurant?.name,
-                        items: o.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ')
-                    }));
-                    setOrders(formatted);
+                    if (Array.isArray(data)) {
+                        // Formatear para frontend
+                        const formatted = data.map(o => ({
+                            ...o,
+                            customer: o.customer?.name || "Yo",
+                            restaurant: o.restaurant?.name,
+                            items: o.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ')
+                        }));
+                        setOrders(formatted);
+                    }
                 }
             } catch (e) { console.error(e); }
         };
@@ -91,7 +119,6 @@ export const AppProvider = ({ children }) => {
     }, [customerUser]);
 
     // Carrito de compras del cliente actual
-    const [cart, setCart] = useState({ restaurantName: null, items: [], total: 0 });
 
     // ============================================
     // FUNCIONES DE ADMINISTRACIÓN
@@ -126,20 +153,8 @@ export const AppProvider = ({ children }) => {
 
 
     // ============================================
-    // ESTADO Y FUNCIONES DE CLIENTES
+    // FUNCIONES DE CLIENTES
     // ============================================
-    const [customerUser, setCustomerUser] = useState(null);
-    const [customerAddresses, setCustomerAddresses] = useState([
-        { id: 1, label: 'Casa', address: 'Calle 5 Poniente #12, Centro' },
-        { id: 2, label: 'Trabajo', address: 'Av. Universidad #100, Col. Roma' }
-    ]);
-    const [registeredUsers, setRegisteredUsers] = useState([
-        { id: 'cust1', name: 'Juan Perez', email: 'juan@example.com', phone: '555-1234', date: '2025-10-01' },
-        { id: 'cust2', name: 'Ana Garcia', email: 'ana@example.com', phone: '555-4321', date: '2025-11-15' }
-    ]);
-    const [systemNotifications, setSystemNotifications] = useState([
-        { id: 1, title: '¡Bienvenido!', message: 'Gracias por descargar Tlapa Comida.', date: 'Ahora' }
-    ]);
 
     const loginCustomer = async (method, data) => {
         try {
@@ -228,12 +243,8 @@ export const AppProvider = ({ children }) => {
     };
 
     // ============================================
-    // ESTADO Y FUNCIONES DE REPARTIDORES
+    // FUNCIONES DE REPARTIDORES
     // ============================================
-    const [deliveryRiders, setDeliveryRiders] = useState([
-        { id: 1, name: 'Carlos Velasquez', username: 'carlos', password: '123', phone: '757-123-4567', rfc: 'VEVC900101', email: 'carlos@tlapa.com', address: 'Calle Principal #10', image: null, totalDeliveries: 5 }
-    ]);
-    const [deliveryUser, setDeliveryUser] = useState(null);
 
     const loginDelivery = (username, password) => {
         const rider = deliveryRiders.find(r => r.username === username && r.password === password);

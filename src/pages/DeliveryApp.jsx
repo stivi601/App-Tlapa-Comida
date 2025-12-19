@@ -32,7 +32,9 @@ export default function DeliveryApp() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setOrders(data);
+                if (Array.isArray(data)) {
+                    setOrders(data);
+                }
             }
         } catch (error) {
             console.error("Error fetching orders", error);
@@ -46,7 +48,9 @@ export default function DeliveryApp() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setAvailableOrders(data);
+                if (Array.isArray(data)) {
+                    setAvailableOrders(data);
+                }
             }
         } catch (error) {
             console.error("Error fetching available orders", error);
