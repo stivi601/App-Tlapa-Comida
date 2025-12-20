@@ -2,6 +2,7 @@ services:
   # Backend Service
   - type: web
     name: tlapa-comida-backend
+    region: ohio
     rootDir: backend
     env: node
     buildCommand: npm install && npx prisma generate
