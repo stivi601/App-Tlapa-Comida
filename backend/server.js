@@ -8,6 +8,7 @@ const restaurantRoutes = require('./src/routes/restaurants');
 const orderRoutes = require('./src/routes/orders');
 const deliveryRoutes = require('./src/routes/delivery');
 const adminRoutes = require('./src/routes/admin');
+const smsRoutes = require('./src/routes/sms');
 
 // Configuración
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/sms', smsRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
