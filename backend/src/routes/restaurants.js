@@ -4,19 +4,24 @@ const {
     getAllRestaurants,
     getRestaurantById,
     createRestaurant,
-    addMenuItem
+    addMenuItem,
+    toggleRestaurantStatus,
+    updateRestaurantProfile,
+    loginRestaurant
 } = require('../controllers/restaurantController');
-const { authMiddleware, requireRole } = require('../middleware/auth');
+const { authMiddleware, requireRole, requireRestaurantOwner } = require('../middleware/auth');
 
-// Rutas Públicas (Cualquiera puede ver restaurantes)
+// Rutas Públicas
 router.get('/', getAllRestaurants);
 router.get('/:id', getRestaurantById);
+router.post('/login', loginRestaurant);
 
-// Rutas Protegidas (Solo Admin puede crear restaurantes por ahora)
-router.post('/', authMiddleware, requireRole('ADMIN'), createRestaurant); // TODO: Descomentar auth cuando tengamos users admin
+// Rutas Protegidas (Dueño del Restaurante o Admin)
+router.patch('/:id/status', authMiddleware, requireRestaurantOwner, toggleRestaurantStatus);
+router.patch('/:id/profile', authMiddleware, requireRestaurantOwner, updateRestaurantProfile);
+router.post('/:id/menu', authMiddleware, requireRestaurantOwner, addMenuItem);
 
-// Rutas Protegidas (Agregar menú - idealmente Admin o el propio Restaurante)
-// Por ahora lo dejamos abierto para facilitar pruebas del seed, o protegido con auth básico
-router.post('/:id/menu', addMenuItem);
+// Rutas Admin
+router.post('/', authMiddleware, requireRole('ADMIN'), createRestaurant);
 
 module.exports = router;

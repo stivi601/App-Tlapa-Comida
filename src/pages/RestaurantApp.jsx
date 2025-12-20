@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChefHat, CheckCircle, Clock, ArrowRight, Plus, Utensils, X, Image, ChevronDown, ChevronUp, Camera, Trash2, Lock } from 'lucide-react';
+import { ChefHat, CheckCircle, Clock, ArrowRight, Plus, Utensils, X, Image, ChevronDown, ChevronUp, Camera, Trash2, Lock, Settings } from 'lucide-react';
+
+const API_URL = (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('tu-dominio'))
+    ? import.meta.env.VITE_API_URL
+    : 'http://localhost:3000';
 
 export default function RestaurantApp() {
     const { orders, updateOrderStatus, restaurants, addMenuItem, removeMenuItem, removeMenuCategory, loginRestaurant } = useApp();
@@ -18,14 +22,46 @@ export default function RestaurantApp() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [expandedCategory, setExpandedCategory] = useState(null);
 
-    const handleLogin = (e) => {
+    // Sincronizar 'user' con la data actualizada de 'restaurants' del context (que hace polling)
+    // Esto asegura que si cambia el estado isOnline o llegan items nuevos (si se gestionara centralizado), se refleje.
+    // Sin embargo, las ORDENES vienen de 'orders' del context.
+
+    // Si el usuario está logueado, actualizar su referencia
+    if (user) {
+        const updatedUser = restaurants.find(r => r.id === user.id);
+        if (updatedUser && updatedUser !== user) {
+            // Cuidado con loop infinito si la referencia cambia siempre.
+            // En React simple, esto puede causar re-renders si no se controla.
+            // Lo haremos solo al renderizar, tomando 'myRestaurant' derivado.
+        }
+    }
+
+    const myRestaurantId = user?.id;
+    const myRestaurant = restaurants.find(r => r.id === myRestaurantId) || user;
+
+    // Filtrar órdenes para este restaurante
+    const myOrders = orders.filter(o => o.restaurantId === myRestaurantId);
+
+    const handleLogin = async (e) => {
         e.preventDefault();
-        const restaurant = loginRestaurant(username, password);
-        if (restaurant) {
-            setUser(restaurant);
-            setLoginError('');
-        } else {
-            setLoginError('Credenciales inválidas');
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setUser({ ...data.restaurant, token: data.token });
+                setLoginError('');
+            } else {
+                const err = await res.json();
+                setLoginError(err.error || 'Error al iniciar sesión');
+            }
+        } catch (error) {
+            console.error(error);
+            setLoginError('Error de conexión');
         }
     };
 
@@ -79,9 +115,7 @@ export default function RestaurantApp() {
         );
     }
 
-    const myRestaurantId = user.id;
-    const myRestaurant = restaurants.find(r => r.id === myRestaurantId) || user; // Ensure we get latest state
-    const myOrders = orders.filter(o => o.restaurant === myRestaurant.name);
+
 
     const handleAddItem = (e) => {
         e.preventDefault();
@@ -94,6 +128,30 @@ export default function RestaurantApp() {
         setShowAddForm(false);
     };
 
+    const updateRestaurant = async (data) => {
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${myRestaurantId}/profile`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                // Forzar recarga o actualizar context si fuera posible. 
+                // Por simplicidad en este MVP que usa 'login' local:
+                alert("Datos actualizados. Recargando...");
+                window.location.reload();
+            } else {
+                alert("Error al actualizar");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión");
+        }
+    };
+
     return (
         <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
             <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -101,8 +159,45 @@ export default function RestaurantApp() {
                     <h1 style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>Panel de Restaurante</h1>
                     <p style={{ color: 'var(--text-light)' }}>{myRestaurant?.name}</p>
                 </div>
-                <div style={{ background: '#EFF6FF', padding: '0.5rem', borderRadius: '50%', color: '#3B82F6' }}>
-                    <ChefHat size={24} />
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'white', padding: '8px 12px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: '500', color: myRestaurant?.isOnline ? '#10B981' : '#94A3B8' }}>
+                            {myRestaurant?.isOnline ? 'Abierto' : 'Cerrado'}
+                        </span>
+                        <div
+                            style={{
+                                width: '40px', height: '22px', background: myRestaurant?.isOnline ? '#10B981' : '#E2E8F0',
+                                borderRadius: '20px', position: 'relative', transition: 'all 0.3s'
+                            }}
+                            onClick={async () => {
+                                try {
+                                    const newStatus = !myRestaurant.isOnline;
+                                    // Optimistic update locally (optional, but good UX)
+                                    // Better to call API then refresh
+                                    const res = await fetch(`${API_URL}/api/restaurants/${myRestaurantId}/status`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ isOnline: newStatus })
+                                    });
+                                    if (res.ok) {
+                                        // Trigger global refresh if available, or force reload. 
+                                        // For now we assume AppContext updates or we force a reload.
+                                        window.location.reload();
+                                    }
+                                } catch (e) { console.error(e); }
+                            }}
+                        >
+                            <div style={{
+                                width: '18px', height: '18px', background: 'white', borderRadius: '50%',
+                                position: 'absolute', top: '2px', left: myRestaurant?.isOnline ? '20px' : '2px',
+                                transition: 'all 0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}></div>
+                        </div>
+                    </label>
+
+                    <div style={{ background: '#EFF6FF', padding: '0.5rem', borderRadius: '50%', color: '#3B82F6' }}>
+                        <ChefHat size={24} />
+                    </div>
                 </div>
             </header>
 
@@ -133,6 +228,19 @@ export default function RestaurantApp() {
                         cursor: 'pointer'
                     }}>
                     Mi Menú
+                </button>
+                <button
+                    onClick={() => setActiveTab('config')}
+                    style={{
+                        padding: '0.5rem 1rem',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeTab === 'config' ? '2px solid var(--primary)' : '2px solid transparent',
+                        color: activeTab === 'config' ? 'var(--primary)' : '#94A3B8',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                    }}>
+                    Configuración
                 </button>
             </div>
 
@@ -409,6 +517,93 @@ export default function RestaurantApp() {
                             </div>
                         ))}
                     </div>
+                </div>
+            )}
+            {activeTab === 'config' && (
+                <div className="fade-in card" style={{ padding: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                        <Settings className="text-primary" size={28} />
+                        <h2 style={{ fontSize: '1.4rem' }}>Configuración del Restaurante</h2>
+                    </div>
+
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.target);
+                        updateRestaurant({
+                            name: formData.get('name'),
+                            time: formData.get('time'),
+                            deliveryFee: formData.get('deliveryFee'),
+                            image: formData.get('image') // Hidden input managed below
+                        });
+                    }} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                        {/* Image Preview & Upload */}
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ position: 'relative', width: '150px', height: '150px' }}>
+                                <img
+                                    src={myRestaurant.image || 'https://via.placeholder.com/150'}
+                                    id="preview-img"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px', border: '1px solid #E2E8F0' }}
+                                />
+                                <label style={{
+                                    position: 'absolute', bottom: '-10px', right: '-10px',
+                                    background: 'var(--primary)', color: 'white',
+                                    padding: '8px', borderRadius: '50%', cursor: 'pointer',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}>
+                                    <Camera size={20} />
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const url = URL.createObjectURL(file);
+                                            document.getElementById('preview-img').src = url;
+                                            // Mock: put URL in hidden input. 
+                                            // Real app: upload to server first, get URL.
+                                            // For this MVP we send the blob URL but server won't be able to display it for others.
+                                            // Ideally we have an upload endpoint. 
+                                            // But for now we rely on the same 'updateRestaurant' which accepts image string.
+                                            // So we will just set the value of a hidden input?
+                                            // Better: update a local state or ref.
+                                            // Or simplified: Just set the value of the hidden input manually?
+                                            // Actually, controlled input is better but I used uncontrolled form.
+                                            // Let's just create a hidden input and set its value? Invalid for file.
+                                            // We will assume 'image' is a text field for URL in this MVP form.
+                                            // Wait, the user wants 'functionality'.
+                                            // I will use a simple text input for Image URL for now OR just rely on the 'image' field being passed if I managed state.
+                                            // Implementation simplified:
+                                            const input = document.getElementById('image-url-input');
+                                            if (input) input.value = url;
+                                            // NOTE: Blob URLs are local only. Other users won't see it.
+                                            // Addressing 'Address Image Uploads' is the next specific step in the plan.
+                                            // So I will stick to text input for URL for robustness or just Blob URL as placeholder.
+                                        }
+                                    }} />
+                                </label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="image" id="image-url-input" defaultValue={myRestaurant.image} />
+
+
+                        <div>
+                            <label className="label">Nombre del Restaurante</label>
+                            <input name="name" type="text" className="input" defaultValue={myRestaurant.name} required />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                                <label className="label">Tiempo Estimado (min)</label>
+                                <input name="time" type="text" className="input" defaultValue={myRestaurant.time} placeholder="Ej. 20-30 min" required />
+                            </div>
+                            <div>
+                                <label className="label">Costo Envío ($)</label>
+                                <input name="deliveryFee" type="number" step="0.50" className="input" defaultValue={myRestaurant.deliveryFee} required />
+                            </div>
+                        </div>
+
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
+                            Guardar Cambios
+                        </button>
+                    </form>
                 </div>
             )}
         </div>

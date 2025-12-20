@@ -6,8 +6,10 @@ const prisma = require('../utils/prisma');
  */
 const createOrder = async (req, res) => {
     try {
+        console.log("Create Order Body:", req.body);
         const { restaurantId, items, total, addressId } = req.body;
-        const userId = req.user.userId; // Del token JWT
+        const userId = req.user.userId;
+        console.log("User ID:", userId);
 
         // Crear el pedido con sus items en una transacción
         const newOrder = await prisma.order.create({

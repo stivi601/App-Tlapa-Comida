@@ -28,6 +28,7 @@ export default function CustomerApp() {
     const [showAddAddress, setShowAddAddress] = useState(false);
     const [newAddr, setNewAddr] = useState({ label: '', address: '' });
     const [editingAddressId, setEditingAddressId] = useState(null);
+    const [showEditProfile, setShowEditProfile] = useState(false);
     const [ratingModalOrder, setRatingModalOrder] = useState(null);
     const [selectedStars, setSelectedStars] = useState(0);
 
@@ -354,7 +355,7 @@ export default function CustomerApp() {
                                                         </>
                                                     )}
                                                     <button
-                                                        onClick={() => handleAddItem(item.name, item.price, selectedRestaurant.name)}
+                                                        onClick={() => handleAddItem(item, item.price, selectedRestaurant.name)}
                                                         style={{
                                                             background: 'var(--primary)', color: 'white', border: 'none',
                                                             width: qty > 0 ? '32px' : '44px', height: qty > 0 ? '32px' : '44px', borderRadius: '50%',
@@ -498,11 +499,22 @@ export default function CustomerApp() {
                                 <div
                                     key={rest.id}
                                     className="card"
-                                    style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}
-                                    onClick={() => setSelectedRestaurant(rest)}
+                                    style={{ padding: 0, overflow: 'hidden', cursor: rest.isOnline ? 'pointer' : 'default', opacity: rest.isOnline ? 1 : 0.8 }}
+                                    onClick={() => rest.isOnline && setSelectedRestaurant(rest)}
                                 >
                                     <div style={{ height: '160px', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={rest.image} alt={rest.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={rest.image} alt={rest.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: rest.isOnline ? 'none' : 'grayscale(100%)' }} />
+
+                                        {!rest.isOnline && (
+                                            <div style={{
+                                                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: 'white', fontWeight: 'bold', fontSize: '1.2rem', backdropFilter: 'blur(2px)'
+                                            }}>
+                                                CERRADO
+                                            </div>
+                                        )}
+
                                         <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'white', borderRadius: '20px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '600' }}>
                                             <Clock size={14} color="var(--primary)" />
                                             {rest.time}
@@ -561,7 +573,7 @@ export default function CustomerApp() {
                                             </button>
                                             <span style={{ fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
                                             <button
-                                                onClick={() => handleAddItem(item.name, item.price, cart.restaurantName)}
+                                                onClick={() => handleAddItem(item, item.price, cart.restaurantName)}
                                                 style={{ background: 'var(--primary)', color: 'white', border: 'none', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             >
                                                 <Plus size={14} />
@@ -575,7 +587,10 @@ export default function CustomerApp() {
                                     <span>Total</span>
                                     <span>{formatPrice(cart.total)}</span>
                                 </div>
-                                <button onClick={() => { placeOrder(); setActiveTab('orders'); }} className="btn btn-primary" style={{ width: '100%' }}>
+                                <button onClick={async () => {
+                                    const success = await placeOrder();
+                                    if (success) setActiveTab('orders');
+                                }} className="btn btn-primary" style={{ width: '100%' }}>
                                     Confirmar Pedido
                                 </button>
                             </div>
@@ -649,7 +664,6 @@ export default function CustomerApp() {
 
             {activeTab === 'profile' && (
                 <div className="fade-in" style={{ padding: '2rem 1rem' }}>
-                    {/* ... (contenido del perfil existente) ... */}
                     <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                         <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 1.5rem' }}>
                             <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#F1F5F9', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
@@ -666,15 +680,42 @@ export default function CustomerApp() {
                                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
-                                        const url = URL.createObjectURL(file);
-                                        updateCustomerUser({ image: url });
+                                        // Upload to server
+                                        const formData = new FormData();
+                                        formData.append('image', file);
+
+                                        fetch(`${API_URL}/api/upload`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': `Bearer ${customerUser.token}`
+                                            },
+                                            body: formData
+                                        })
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                if (data.success) {
+                                                    updateCustomerUser({ image: data.url });
+                                                    alert('Imagen actualizada con éxito');
+                                                } else {
+                                                    alert('Error al subir imagen: ' + data.error);
+                                                }
+                                            })
+                                            .catch(err => alert('Error de conexión al subir imagen'));
                                     }
                                 }} />
                             </label>
                         </div>
                         <h3 style={{ marginBottom: '0.5rem' }}>{customerUser.name}</h3>
                         <p style={{ color: 'var(--text-light)' }}>{customerUser.email}</p>
-                        <p style={{ color: 'var(--text-light)' }}>{customerUser.phone}</p>
+                        <p style={{ color: 'var(--text-light)' }}>{customerUser.phone || 'Sin teléfono'}</p>
+
+                        <button
+                            className="btn btn-secondary"
+                            style={{ marginTop: '1rem', padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                            onClick={() => setShowEditProfile(true)}
+                        >
+                            <Edit2 size={16} style={{ marginRight: '6px' }} /> Editar Perfil
+                        </button>
                     </div>
 
                     <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -722,6 +763,56 @@ export default function CustomerApp() {
                     <button onClick={logoutCustomer} className="btn" style={{ width: '100%', background: '#FEE2E2', color: '#EF4444', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                         <LogOut size={18} /> Cerrar Sesión
                     </button>
+                </div>
+            )}
+
+            {/* Edit Profile Modal */}
+            {showEditProfile && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Editar Perfil</h3>
+                            <button onClick={() => setShowEditProfile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <X size={24} color="#94A3B8" />
+                            </button>
+                        </div>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const updates = {
+                                name: formData.get('name'),
+                                phone: formData.get('phone'),
+                                email: formData.get('email')
+                            };
+                            const password = formData.get('password');
+                            if (password) updates.password = password;
+
+                            const res = await updateCustomerUser(updates);
+                            if (res.success) {
+                                setShowEditProfile(false);
+                            } else {
+                                alert(res.error || "Error al actualizar");
+                            }
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label className="label">Nombre</label>
+                                <input name="name" type="text" className="input" defaultValue={customerUser.name} required />
+                            </div>
+                            <div>
+                                <label className="label">Email</label>
+                                <input name="email" type="email" className="input" defaultValue={customerUser.email} required />
+                            </div>
+                            <div>
+                                <label className="label">Teléfono</label>
+                                <input name="phone" type="tel" className="input" defaultValue={customerUser.phone} />
+                            </div>
+                            <div>
+                                <label className="label">Nueva Contraseña (Opcional)</label>
+                                <input name="password" type="password" className="input" placeholder="Dejar en blanco para mantener actual" />
+                            </div>
+                            <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Guardar Cambios</button>
+                        </form>
+                    </div>
                 </div>
             )}
 

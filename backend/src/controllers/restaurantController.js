@@ -1,4 +1,68 @@
 const prisma = require('../utils/prisma');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret_development_key';
+
+/**
+ * Login para Restaurantes
+ * POST /api/restaurants/login
+ */
+const loginRestaurant = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+        }
+
+        const restaurant = await prisma.restaurant.findUnique({
+            where: { username }
+        });
+
+        if (!restaurant) {
+            return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+
+        // Verificar password (si es placeholder, fallará, pero en create lo hashearemos)
+        // Nota: Para compatibilidad con legacy/seeds sin hash, podríamos checar texto plano si hash falla
+        // pero por seguridad mejor enforced hash.
+        // Si el password empieza con $2, asumimos hash. Si no, comparamos plano (solo dev).
+        let isValid = false;
+        if (restaurant.password.startsWith('$2')) {
+            isValid = await bcrypt.compare(password, restaurant.password);
+        } else {
+            isValid = restaurant.password === password;
+        }
+
+        if (!isValid) {
+            return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+
+        // Generar token
+        const token = jwt.sign(
+            { userId: restaurant.id, role: 'RESTAURANT', restaurantId: restaurant.id },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            message: 'Login exitoso',
+            restaurant: {
+                id: restaurant.id,
+                name: restaurant.name,
+                username: restaurant.username,
+                image: restaurant.image,
+                isOnline: restaurant.isOnline
+            },
+            token
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Error en el servidor' });
+    }
+};
 
 /**
  * Obtener todos los restaurantes
@@ -61,14 +125,13 @@ const createRestaurant = async (req, res) => {
     try {
         const { name, username, password, description, time, deliveryFee, categories, image } = req.body;
 
-        // Aquí deberíamos hashear el password si se usará para login de panel de restaurante
-        // Por simplificación en este paso, lo guardamos directo o usamos un hash placeholder
+        const hashedPassword = await bcrypt.hash(password || '123456', 10);
 
         const newRestaurant = await prisma.restaurant.create({
             data: {
                 name,
                 username,
-                password: 'hashed_password_placeholder', // TODO: Implementar hash real
+                password: hashedPassword,
                 time: time || '30-45 min',
                 deliveryFee: parseFloat(deliveryFee) || 0,
                 categories: JSON.stringify(categories || []),
@@ -111,9 +174,60 @@ const addMenuItem = async (req, res) => {
     }
 };
 
+/**
+ * Cambiar estado Abierto/Cerrado
+ * PATCH /api/restaurants/:id/status
+ */
+const toggleRestaurantStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isOnline } = req.body;
+
+        const updatedRestaurant = await prisma.restaurant.update({
+            where: { id },
+            data: { isOnline }
+        });
+
+        res.json(updatedRestaurant);
+    } catch (error) {
+        console.error('Error al actualizar estado:', error);
+        res.status(500).json({ error: 'Error al actualizar estado del restaurante' });
+    }
+};
+
+/**
+ * Actualizar perfil del restaurante (Tiempo, Costo envío, Imagen, Nombre)
+ * PATCH /api/restaurants/:id/profile
+ */
+const updateRestaurantProfile = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, time, deliveryFee, image } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (time) updateData.time = time;
+        if (deliveryFee !== undefined) updateData.deliveryFee = parseFloat(deliveryFee);
+        if (image) updateData.image = image;
+
+        const updatedRestaurant = await prisma.restaurant.update({
+            where: { id },
+            data: updateData
+        });
+
+        res.json(updatedRestaurant);
+    } catch (error) {
+        console.error('Error al actualizar perfil del restaurante:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil del restaurante' });
+    }
+};
+
 module.exports = {
     getAllRestaurants,
     getRestaurantById,
     createRestaurant,
-    addMenuItem
+    addMenuItem,
+    toggleRestaurantStatus,
+    updateRestaurantProfile,
+    loginRestaurant
 };

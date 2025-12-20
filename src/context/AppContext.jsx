@@ -3,7 +3,9 @@ import { ORDER_STATUS } from '../constants/orderStatus';
 
 const AppContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('tu-dominio'))
+    ? import.meta.env.VITE_API_URL
+    : 'http://localhost:3000';
 
 /**
  * AppProvider - Proveedor del contexto global de la aplicación
@@ -153,6 +155,69 @@ export const AppProvider = ({ children }) => {
 
 
     // ============================================
+    // POLLING DE DATOS (Simulación Real-Time)
+    // ============================================
+    useEffect(() => {
+        // Interval para refrescar órdenes y restaurantes cada 10s
+        const interval = setInterval(() => {
+            const fetchUpdates = async () => {
+                try {
+                    // Refrescar restaurantes para estados (open/closed)
+                    const resRest = await fetch(`${API_URL}/api/restaurants`);
+                    if (resRest.ok) {
+                        const dataRest = await resRest.json();
+                        setRestaurants(prev => {
+                            // Solo actualizar si hay cambios significativos, 
+                            // pero por simplicidad de React, setstate funciona.
+                            // Si queremos evitar re-renders innecesarios, podríamos comparar.
+                            // Si categories ya es array o no existe
+                            return dataRest.map(r => ({
+                                ...r,
+                                categories: (typeof r.categories === 'string') ? JSON.parse(r.categories) : (r.categories || [])
+                            }));
+                        });
+                    }
+
+                    // Refrescar órdenes si soy delivery o restaurante logueado
+                    // Nota: para Customers, ya hay un useEffect que carga 'my-orders' al montar.
+                    // Podríamos refrescar mis órdenes también aquí si customerUser existe.
+
+                    if (customerUser?.token) {
+                        const resMyOrders = await fetch(`${API_URL}/api/orders/my-orders`, {
+                            headers: { 'Authorization': `Bearer ${customerUser.token}` }
+                        });
+                        if (resMyOrders.ok) {
+                            const myOrders = await resMyOrders.json();
+                            // Actualizar solo las mías podría ser conflicto con el estado global 'orders' 
+                            // que parece ser usado para todo. 
+                            // En este AppContext, 'orders' parece ser una lista GLOBAL para fines de demo
+                            // o una lista personal?
+                            // Revisando el código original: 'orders' se usa en Admin y RestaurantApp.
+                            // CustomerApp usa 'activeOrders' filter del global 'orders' O pide sus propias.
+                            // Vamos a asumir que 'orders' en AppContext es LA lista global para Admin/Restaurante (mock),
+                            // pero el backend real tiene endpoints separados.
+
+                            // Si estamos en modo "Backend Real", AppContext debería quizás
+                            // exponer 'refreshOrders' y que cada componente llame lo suyo,
+                            // o centralizarlo aquí.
+
+                            // Por ahora, para simplificar el UX de "Real time":
+                            // Refrescaremos las órdenes globales SOLO si hay un admin o restaurante "logueado" (simulado).
+                            // O simplemente refrescamos '/api/orders' si queremos ver todo (Admin).
+                        }
+                    }
+
+                } catch (err) {
+                    console.error("Polling error", err);
+                }
+            };
+            fetchUpdates();
+        }, 10000); // 10 segundos
+
+        return () => clearInterval(interval);
+    }, [customerUser]); // Dependencias
+
+    // ============================================
     // FUNCIONES DE CLIENTES
     // ============================================
 
@@ -212,11 +277,29 @@ export const AppProvider = ({ children }) => {
 
     const logoutCustomer = () => setCustomerUser(null);
 
-    const updateCustomerUser = (data) => {
-        if (!customerUser) return;
-        const updated = { ...customerUser, ...data };
-        setCustomerUser(updated);
-        setRegisteredUsers(registeredUsers.map(u => u.id === customerUser.id ? updated : u));
+    const updateCustomerUser = async (data) => {
+        if (!customerUser?.token) return { success: false, error: "No autenticado" };
+
+        try {
+            const res = await fetch(`${API_URL}/api/auth/profile`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${customerUser.token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "Error al actualizar perfil");
+
+            // Mantener el token del usuario actual ya que el endpoint no lo devuelve
+            setCustomerUser({ ...result, token: customerUser.token });
+            return { success: true };
+        } catch (error) {
+            console.error("Update profile error", error);
+            return { success: false, error: error.message };
+        }
     };
 
     const addAddress = (addr) => {
@@ -282,12 +365,7 @@ export const AppProvider = ({ children }) => {
         }));
     };
 
-    // ============================================
-    // FUNCIONES DE AUTENTICACIÓN
-    // ============================================
-    const loginRestaurant = (username, password) => {
-        return restaurants.find(r => r.username === username && r.password === password) || null;
-    };
+
 
 
     const addToCart = (item, restaurantName, price) => {
@@ -365,10 +443,10 @@ export const AppProvider = ({ children }) => {
     const clearCart = () => setCart({ restaurantId: null, restaurantName: null, items: [], total: 0 });
 
     const placeOrder = async () => {
-        if (cart.items.length === 0) return;
+        if (cart.items.length === 0) return false;
         if (!customerUser || !customerUser.token) {
             alert("Debes iniciar sesión para ordenar");
-            return;
+            return false;
         }
 
         try {
@@ -381,7 +459,6 @@ export const AppProvider = ({ children }) => {
                     price: i.price
                 }))
             };
-
             const res = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: {
@@ -411,9 +488,11 @@ export const AppProvider = ({ children }) => {
             setOrders([formattedOrder, ...orders]);
             clearCart();
             alert("¡Pedido realizado con éxito!");
+            return true;
         } catch (error) {
             console.error("Error placeOrder", error);
             alert("Error al realizar el pedido: " + error.message);
+            return false;
         }
     };
 
@@ -483,7 +562,7 @@ export const AppProvider = ({ children }) => {
             cancelOrder, confirmOrderReceived, updateOrderStatus,
             addMenuItem, getCategories, removeMenuItem, removeMenuCategory,
             addRestaurantCategory, removeRestaurantCategory,
-            addRestaurant, updateRestaurant, deleteRestaurant, loginRestaurant,
+            addRestaurant, updateRestaurant, deleteRestaurant,
             customerUser, loginCustomer, logoutCustomer, registerCustomer,
             customerAddresses, addAddress, removeAddress, updateAddress,
             registeredUsers, systemNotifications, sendMassNotification,

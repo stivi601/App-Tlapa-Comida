@@ -106,8 +106,54 @@ const getRiderStats = async (req, res) => {
     }
 };
 
+
+
+/**
+ * Actualizar perfil de repartidor
+ * PATCH /api/delivery/profile
+ */
+const updateProfile = async (req, res) => {
+    try {
+        const riderId = req.user.userId;
+        const { name, phone, password, image } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (phone) updateData.phone = phone;
+        if (image) updateData.image = image;
+
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedRider = await prisma.deliveryRider.update({
+            where: { id: riderId },
+            data: updateData,
+            select: {
+                id: true,
+                username: true,
+                name: true,
+                phone: true,
+                image: true,
+                totalDeliveries: true,
+                isOnline: true
+            }
+        });
+
+        res.json({
+            message: 'Perfil actualizado',
+            rider: updatedRider
+        });
+
+    } catch (error) {
+        console.error('Update Rider Profile Error:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+};
+
 module.exports = {
     loginRider,
     toggleStatus,
-    getRiderStats
+    getRiderStats,
+    updateProfile
 };

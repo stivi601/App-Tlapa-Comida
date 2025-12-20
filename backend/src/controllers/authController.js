@@ -166,8 +166,59 @@ const getProfile = async (req, res) => {
     }
 };
 
+/**
+ * Actualizar perfil de usuario
+ * PATCH /api/auth/profile
+ */
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { name, phone, email, password, image } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (phone) updateData.phone = phone;
+        if (image) updateData.image = image;
+
+        // Si cambia el email, validar que no exista otro
+        if (email) {
+            const existingUser = await prisma.user.findUnique({ where: { email } });
+            if (existingUser && existingUser.id !== userId) {
+                return res.status(400).json({ error: 'El email ya está en uso' });
+            }
+            updateData.email = email;
+        }
+
+        // Si cambia password, hashear
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                phone: true,
+                image: true,
+                role: true,
+                createdAt: true,
+                addresses: true
+            }
+        });
+
+        res.json(updatedUser);
+    } catch (error) {
+        console.error('Error al actualizar perfil:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+};
+
 module.exports = {
     register,
     login,
-    getProfile
+    getProfile,
+    updateProfile
 };

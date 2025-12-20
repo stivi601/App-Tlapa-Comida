@@ -51,4 +51,34 @@ const requireRole = (...roles) => {
     };
 };
 
-module.exports = { authMiddleware, requireRole };
+/**
+ * Middleware para asegurar que la operación la hace el dueño del restaurante o Admin
+ * Se debe usar DESPUÉS de authMiddleware
+ */
+const requireRestaurantOwner = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'No autenticado' });
+    }
+
+    // Admin tiene acceso total
+    if (req.user.role === 'ADMIN') {
+        return next();
+    }
+
+    // Verificar si es Restaurant Role
+    if (req.user.role !== 'RESTAURANT') {
+        return res.status(403).json({ error: 'Acceso denegado: No es cuenta de Restaurante' });
+    }
+
+    // Verificar ownership
+    const requestRestaurantId = req.params.id; // Asumimos rutas tipo /api/restaurants/:id/...
+    const userRestaurantId = req.user.restaurantId; // Del token
+
+    if (requestRestaurantId && userRestaurantId && requestRestaurantId === userRestaurantId) {
+        return next();
+    }
+
+    return res.status(403).json({ error: 'Acceso denegado: No eres dueño de este restaurante' });
+};
+
+module.exports = { authMiddleware, requireRole, requireRestaurantOwner };
