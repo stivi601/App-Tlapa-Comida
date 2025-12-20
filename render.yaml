@@ -17,23 +17,8 @@ services:
         value: production
       - key: TWILIO_ACCOUNT_SID
         sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
       - key: TWILIO_PHONE_NUMBER
         sync: false
-
-  # Frontend Service
-  - type: static
-    name: tlapa-comida-frontend
-    env: static
-    buildCommand: npm install && npm run build
-    publishDir: dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: tlapa-comida-backend
-          property: url
 
 databases:
   - name: tlapa-comida-db
