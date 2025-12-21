@@ -521,46 +521,14 @@ export const AppProvider = ({ children }) => {
         setOrders(orders.map(o => o.id === orderId ? { ...o, ...data } : o));
     };
 
-    const addMenuItem = (restaurantId, newItem) => {
-        setRestaurants(restaurants.map(r => {
-            if (r.id === restaurantId) {
-                return { ...r, menu: [...(r.menu || []), newItem] };
-            }
-            return r;
-        }));
-    };
+    // Funciones de menú eliminadas (ahora gestionadas directamente por RestaurantApp con API)
 
-    const getCategories = (restaurantId) => {
-        const r = restaurants.find(r => r.id === restaurantId);
-        if (!r) return [];
-        const cats = new Set(r.menu?.map(m => m.category) || []);
-        return Array.from(cats);
-    };
-
-    const removeMenuItem = (restaurantId, itemToRemove) => {
-        setRestaurants(restaurants.map(r => {
-            if (r.id === restaurantId) {
-                return { ...r, menu: r.menu.filter(i => i !== itemToRemove) };
-            }
-            return r;
-        }));
-    };
-
-    const removeMenuCategory = (restaurantId, categoryName) => {
-        setRestaurants(restaurants.map(r => {
-            if (r.id === restaurantId) {
-                return { ...r, menu: r.menu.filter(i => i.category !== categoryName) };
-            }
-            return r;
-        }));
-    };
 
     return (
         <AppContext.Provider value={{
             restaurants, orders, cart, restaurantCategories,
             addToCart, removeFromCart, decrementFromCart, clearCart, placeOrder,
             cancelOrder, confirmOrderReceived, updateOrderStatus,
-            addMenuItem, getCategories, removeMenuItem, removeMenuCategory,
             addRestaurantCategory, removeRestaurantCategory,
             addRestaurant, updateRestaurant, deleteRestaurant,
             customerUser, loginCustomer, logoutCustomer, registerCustomer,

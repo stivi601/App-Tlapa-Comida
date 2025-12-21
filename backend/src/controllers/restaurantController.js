@@ -222,11 +222,90 @@ const updateRestaurantProfile = async (req, res) => {
     }
 };
 
+/**
+ * Eliminar item del menú
+ * DELETE /api/restaurants/:id/menu/:itemId
+ */
+const deleteMenuItem = async (req, res) => {
+    try {
+        const { id, itemId } = req.params;
+
+        // Verificar que el item pertenezca al restaurante
+        const menuItem = await prisma.menuItem.findFirst({
+            where: {
+                id: itemId,
+                restaurantId: id
+            }
+        });
+
+        if (!menuItem) {
+            return res.status(404).json({ error: 'Item no encontrado o no pertenece al restaurante' });
+        }
+
+        await prisma.menuItem.delete({
+            where: { id: itemId }
+        });
+
+        res.json({ message: 'Item eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar item:', error);
+        res.status(500).json({ error: 'Error al eliminar platillo' });
+    }
+};
+
+/**
+ * Eliminar categoría del menú (elimina todos los items de esa categoría)
+ * DELETE /api/restaurants/:id/menu/category/:categoryName
+ */
+const deleteMenuCategory = async (req, res) => {
+    try {
+        const { id, categoryName } = req.params;
+
+        // Decode category name just in case (though express params usually handle it)
+        const cat = decodeURIComponent(categoryName);
+
+        // DeleteMany items with that category and restaurantId
+        await prisma.menuItem.deleteMany({
+            where: {
+                restaurantId: id,
+                category: cat
+            }
+        });
+
+        res.json({ message: `Categoría ${cat} eliminada correctamente` });
+    } catch (error) {
+        console.error('Error al eliminar categoría:', error);
+        res.status(500).json({ error: 'Error al eliminar categoría' });
+    }
+};
+
+/**
+ * Eliminar restaurante (Solo Admin)
+ * DELETE /api/restaurants/:id
+ */
+const deleteRestaurant = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await prisma.restaurant.delete({
+            where: { id }
+        });
+
+        res.json({ message: 'Restaurante eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar restaurante:', error);
+        res.status(500).json({ error: 'Error al eliminar restaurante' });
+    }
+};
+
 module.exports = {
     getAllRestaurants,
     getRestaurantById,
     createRestaurant,
     addMenuItem,
+    deleteMenuItem,
+    deleteMenuCategory,
+    deleteRestaurant,
     toggleRestaurantStatus,
     updateRestaurantProfile,
     loginRestaurant

@@ -5,6 +5,8 @@ const {
     getRestaurantById,
     createRestaurant,
     addMenuItem,
+    deleteMenuItem,
+    deleteMenuCategory,
     toggleRestaurantStatus,
     updateRestaurantProfile,
     loginRestaurant
@@ -20,8 +22,11 @@ router.post('/login', loginRestaurant);
 router.patch('/:id/status', authMiddleware, requireRestaurantOwner, toggleRestaurantStatus);
 router.patch('/:id/profile', authMiddleware, requireRestaurantOwner, updateRestaurantProfile);
 router.post('/:id/menu', authMiddleware, requireRestaurantOwner, addMenuItem);
+router.delete('/:id/menu/:itemId', authMiddleware, requireRestaurantOwner, deleteMenuItem);
+router.delete('/:id/menu/category/:categoryName', authMiddleware, requireRestaurantOwner, deleteMenuCategory);
 
 // Rutas Admin
 router.post('/', authMiddleware, requireRole('ADMIN'), createRestaurant);
+router.delete('/:id', authMiddleware, requireRole('ADMIN'), require('../controllers/restaurantController').deleteRestaurant);
 
 module.exports = router;

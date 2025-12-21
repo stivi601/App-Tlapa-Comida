@@ -7,7 +7,7 @@ const API_URL = (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.i
     : 'http://localhost:3000';
 
 export default function RestaurantApp() {
-    const { orders, updateOrderStatus, restaurants, addMenuItem, removeMenuItem, removeMenuCategory, loginRestaurant } = useApp();
+    const { orders, updateOrderStatus, restaurants } = useApp();
 
     // Auth State
     const [user, setUser] = useState(null);
@@ -117,15 +117,36 @@ export default function RestaurantApp() {
 
 
 
-    const handleAddItem = (e) => {
+    const handleAddItem = async (e) => {
         e.preventDefault();
         if (!newItem.name || !newItem.price) return;
-        addMenuItem(myRestaurantId, {
-            ...newItem,
-            price: Number(newItem.price)
-        });
-        setNewItem({ name: '', price: '', category: '', desc: '' });
-        setShowAddForm(false);
+
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${myRestaurantId}/menu`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify({
+                    ...newItem,
+                    price: Number(newItem.price)
+                })
+            });
+
+            if (res.ok) {
+                alert("Producto agregado exitosamente");
+                setNewItem({ name: '', price: '', category: '', desc: '', image: null });
+                setShowAddForm(false);
+                window.location.reload();
+            } else {
+                const data = await res.json();
+                alert(data.error || "Error al agregar producto");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión");
+        }
     };
 
     const updateRestaurant = async (data) => {
@@ -447,10 +468,25 @@ export default function RestaurantApp() {
                                         {expandedCategory === category ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </button>
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation();
                                             if (window.confirm(`¿Eliminar categoría "${category}" y sus productos?`)) {
-                                                removeMenuCategory(myRestaurantId, category);
+                                                try {
+                                                    const res = await fetch(`${API_URL}/api/restaurants/${myRestaurantId}/menu/category/${encodeURIComponent(category)}`, {
+                                                        method: 'DELETE',
+                                                        headers: {
+                                                            'Authorization': `Bearer ${user.token}`
+                                                        }
+                                                    });
+                                                    if (res.ok) {
+                                                        window.location.reload();
+                                                    } else {
+                                                        alert("Error al eliminar categoría");
+                                                    }
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    alert("Error de conexión");
+                                                }
                                             }
                                         }}
                                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', padding: '0.5rem' }}
@@ -490,9 +526,25 @@ export default function RestaurantApp() {
                                                         </p>
                                                     </div>
                                                     <button
-                                                        onClick={() => {
+                                                        onClick={async () => {
                                                             if (window.confirm(`¿Eliminar "${item.name}"?`)) {
-                                                                removeMenuItem(myRestaurantId, item);
+                                                                try {
+                                                                    const res = await fetch(`${API_URL}/api/restaurants/${myRestaurantId}/menu/${item.id}`, {
+                                                                        method: 'DELETE',
+                                                                        headers: {
+                                                                            'Authorization': `Bearer ${user.token}`
+                                                                        }
+                                                                    });
+                                                                    if (res.ok) {
+                                                                        window.location.reload();
+                                                                    } else {
+                                                                        const err = await res.json();
+                                                                        alert(err.error || "Error al eliminar");
+                                                                    }
+                                                                } catch (e) {
+                                                                    console.error(e);
+                                                                    alert("Error de conexión");
+                                                                }
                                                             }
                                                         }}
                                                         style={{
