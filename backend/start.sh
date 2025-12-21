@@ -6,10 +6,6 @@ echo "🚀 Iniciando proceso de arranque..."
 echo "🔄 Sincronizando esquema con la base de datos (Prisma DB Push)..."
 npx prisma db push --accept-data-loss
 
-# 2. Poblar base de datos con datos iniciales
-echo "🌱 Poblando base de datos con datos de ejemplo (Prisma Seed)..."
-npx prisma db seed
-
-# 3. Iniciar el servidor
+# 2. Iniciar el servidor
 echo "📡 Arrancando el servidor principal..."
 node server.js
