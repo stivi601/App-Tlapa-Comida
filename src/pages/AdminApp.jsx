@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Users, Store, TrendingUp, DollarSign, Activity, Trash2, Plus, Camera, Bell, Bike, ShieldCheck, Truck, Search } from 'lucide-react';
+import CategoryManager from './CategoryManagerComponent'; // Temporary name, better inline it but file tool is cleaner
 
 const API_URL = (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('tu-dominio'))
     ? import.meta.env.VITE_API_URL
     : 'http://localhost:3000';
+
 
 export default function AdminApp() {
     const {
@@ -38,8 +40,56 @@ export default function AdminApp() {
     const [searchRider, setSearchRider] = useState('');
     const [searchUser, setSearchUser] = useState('');
 
+    // Categories State
+    const [availableCategories, setAvailableCategories] = useState([]);
+
+    useEffect(() => {
+        if (!user) return;
+        fetch(`${API_URL}/api/admin/categories`)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setAvailableCategories(data);
+            })
+            .catch(console.error);
+    }, [user, activeSection]);
+
     // Stats State
     const [stats, setStats] = useState({ sales: 0, restaurants: 0, orders: 0, users: 0, riders: 0 });
+
+    // Report State
+    const [reportStartDate, setReportStartDate] = useState(new Date().toISOString().slice(0, 10)); // Default today
+    const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().slice(0, 10)); // Default today
+    const [reportRestFilter, setReportRestFilter] = useState('');
+    const [reportRiderFilter, setReportRiderFilter] = useState('');
+    const [reportData, setReportData] = useState(null);
+
+    const fetchReports = async () => {
+        if (!user) return;
+        try {
+            // Build Query params
+            const params = new URLSearchParams({
+                startDate: reportStartDate,
+                endDate: reportEndDate
+            });
+            if (reportRestFilter) params.append('restaurantId', reportRestFilter);
+            if (reportRiderFilter) params.append('riderId', reportRiderFilter);
+
+            const res = await fetch(`${API_URL}/api/admin/reports?${params.toString()}`);
+            if (res.ok) {
+                const data = await res.json();
+                setReportData(data);
+            }
+        } catch (error) {
+            console.error("Error fetching reports", error);
+        }
+    };
+
+    // Initial load for reports
+    useEffect(() => {
+        if (user && activeSection === 'Dashboard') {
+            fetchReports();
+        }
+    }, [user, activeSection]);
 
     useEffect(() => {
         if (!user) return;
@@ -230,24 +280,162 @@ export default function AdminApp() {
 
             {/* Content */}
             <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+                {activeSection === 'Categorías' && (
+                    <CategoryManager API_URL={API_URL} />
+                )}
+
                 {activeSection === 'Dashboard' && (
                     <div className="fade-in">
                         <header style={{ marginBottom: '2rem' }}>
                             <h1 style={{ fontSize: '1.8rem' }}>Dashboard General</h1>
                             <p style={{ color: 'var(--text-light)' }}>Bienvenido, {user.name}</p>
                         </header>
+
+                        {/* Report Controls */}
+                        <div className="card" style={{ marginBottom: '2rem' }}>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Generar Reporte Avanzado</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                                {/* Date Selection */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.25rem' }}>Fecha Inicio</label>
+                                    <input type="date" className="input" style={{ width: '100%' }} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.25rem' }}>Fecha Fin</label>
+                                    <input type="date" className="input" style={{ width: '100%' }} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                                </div>
+
+                                {/* Filters */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.25rem' }}>Filtrar Restaurante</label>
+                                    <select className="input" style={{ width: '100%' }} value={reportRestFilter} onChange={e => setReportRestFilter(e.target.value)}>
+                                        <option value="">Ninguno</option>
+                                        {restaurants.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.25rem' }}>Filtrar Repartidor</label>
+                                    <select className="input" style={{ width: '100%' }} value={reportRiderFilter} onChange={e => setReportRiderFilter(e.target.value)}>
+                                        <option value="">Ninguno</option>
+                                        {deliveryRiders.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button className="btn btn-primary" onClick={fetchReports} style={{ height: '42px' }}>Actualizar Reporte</button>
+                                <button className="btn" onClick={() => {
+                                    if (!reportData) return;
+                                    const csvContent = "data:text/csv;charset=utf-8,"
+                                        + "Categoria,Total\n"
+                                        + `Ventas,${reportData.summary.totalSales}\n`
+                                        + `Pedidos,${reportData.summary.totalOrders}\n\n`
+                                        + "Top Restaurantes\n"
+                                        + "Nombre,Venta\n"
+                                        + reportData.restaurantRanking.map(e => `${e.name},${e.value}`).join("\n");
+                                    const encodedUri = encodeURI(csvContent);
+                                    const link = document.createElement("a");
+                                    link.setAttribute("href", encodedUri);
+                                    link.setAttribute("download", `reporte_tlapa_${reportStartDate}.csv`);
+                                    document.body.appendChild(link);
+                                    link.click();
+                                }} style={{ height: '42px', border: '1px solid #CBD5E1' }}>Descargar CSV</button>
+                            </div>
+                        </div>
+
+                        {/* Summary Cards */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                            {/* Stats cards ... using stats state */}
                             <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ padding: '1rem', background: '#EFF6FF', borderRadius: '12px', color: '#3B82F6' }}>
                                     <DollarSign size={24} />
                                 </div>
                                 <div>
-                                    <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Ventas Totales</p>
-                                    <h3 style={{ fontSize: '1.5rem' }}>${(stats.sales || 0).toLocaleString()}</h3>
+                                    <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Ventas del Periodo</p>
+                                    <h3 style={{ fontSize: '1.5rem' }}>${(reportData?.summary?.totalSales || 0).toLocaleString()}</h3>
                                 </div>
                             </div>
-                            {/* ... more cards ... */}
+                            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ padding: '1rem', background: '#F0FDF4', borderRadius: '12px', color: '#166534' }}>
+                                    <Store size={24} />
+                                </div>
+                                <div>
+                                    <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Pedidos del Periodo</p>
+                                    <h3 style={{ fontSize: '1.5rem' }}>{(reportData?.summary?.totalOrders || 0)}</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Charts / Data Tables */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                            {/* Sales Chart (Simulated as table for now) */}
+                            <div className="card">
+                                <h3>Ventas por Tiempo ({reportStartDate} - {reportEndDate})</h3>
+                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', fontSize: '0.9rem' }}>
+                                        <thead>
+                                            <tr style={{ textAlign: 'left', borderBottom: '1px solid #EEE' }}>
+                                                <th style={{ padding: '0.5rem' }}>Tiempo</th>
+                                                <th style={{ padding: '0.5rem' }}>Ventas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {reportData?.chartData?.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #FAFAFA' }}>
+                                                    <td style={{ padding: '0.5rem' }}>{item.label}</td>
+                                                    <td style={{ padding: '0.5rem' }}><b>${item.value.toLocaleString()}</b></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Top Restaurants */}
+                            <div className="card">
+                                <h3>Top Restaurantes</h3>
+                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', fontSize: '0.9rem' }}>
+                                        <thead>
+                                            <tr style={{ textAlign: 'left', borderBottom: '1px solid #EEE' }}>
+                                                <th style={{ padding: '0.5rem' }}>Restaurante</th>
+                                                <th style={{ padding: '0.5rem' }}>Venta Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {reportData?.restaurantRanking?.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #FAFAFA' }}>
+                                                    <td style={{ padding: '0.5rem' }}>{idx + 1}. {item.name}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#3B82F6' }}><b>${item.value.toLocaleString()}</b></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Top Riders */}
+                            <div className="card">
+                                <h3>Top Repartidores (Entregas)</h3>
+                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', fontSize: '0.9rem' }}>
+                                        <thead>
+                                            <tr style={{ textAlign: 'left', borderBottom: '1px solid #EEE' }}>
+                                                <th style={{ padding: '0.5rem' }}>Repartidor</th>
+                                                <th style={{ padding: '0.5rem' }}>Entregas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {reportData?.riderRanking?.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #FAFAFA' }}>
+                                                    <td style={{ padding: '0.5rem' }}>{idx + 1}. {item.name}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#166534' }}><b>{item.value}</b></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -283,6 +471,9 @@ export default function AdminApp() {
                                 <h3 style={{ marginBottom: '1.5rem' }}>{restFormData.id ? 'Editar Restaurante' : 'Nuevo Restaurante'}</h3>
                                 <form onSubmit={handleSaveRestaurant} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     {/* ... inputs ... */}
+
+
+
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div style={{ gridColumn: 'span 2' }}>
                                             <label>Nombre</label>
@@ -293,11 +484,35 @@ export default function AdminApp() {
                                             <input type="text" className="input" style={{ width: '100%' }} value={restFormData.username} onChange={e => setRestFormData({ ...restFormData, username: e.target.value })} required />
                                         </div>
                                         <div>
-                                            <label>Contraseña</label>
-                                            <input type="text" className="input" style={{ width: '100%' }} value={restFormData.password} onChange={e => setRestFormData({ ...restFormData, password: e.target.value })} required />
+                                            <label>Contraseña (Dejar en blanco para no cambiar)</label>
+                                            <input type="text" className="input" style={{ width: '100%' }} value={restFormData.password} onChange={e => setRestFormData({ ...restFormData, password: e.target.value })} />
                                         </div>
                                     </div>
-                                    {/* ... image upload ... */}
+
+                                    <div style={{ marginTop: '1rem' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Categorías</label>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            {availableCategories.map(cat => (
+                                                <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', cursor: 'pointer', background: restFormData.categories.includes(cat.name) ? '#EFF6FF' : 'white', borderColor: restFormData.categories.includes(cat.name) ? '#3B82F6' : '#E2E8F0' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={restFormData.categories.includes(cat.name)}
+                                                        onChange={e => {
+                                                            const isChecked = e.target.checked;
+                                                            let newCats = [...restFormData.categories];
+                                                            if (isChecked) {
+                                                                if (!newCats.includes(cat.name)) newCats.push(cat.name);
+                                                            } else {
+                                                                newCats = newCats.filter(c => c !== cat.name);
+                                                            }
+                                                            setRestFormData({ ...restFormData, categories: newCats });
+                                                        }}
+                                                    />
+                                                    <span style={{ fontSize: '0.9rem' }}>{cat.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
 
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                                         <button type="button" className="btn" onClick={() => setShowRestForm(false)}>Cancelar</button>

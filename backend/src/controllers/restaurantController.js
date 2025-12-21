@@ -202,13 +202,19 @@ const toggleRestaurantStatus = async (req, res) => {
 const updateRestaurantProfile = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, time, deliveryFee, image } = req.body;
+        const { name, time, deliveryFee, image, username, password, categories } = req.body;
 
         const updateData = {};
         if (name) updateData.name = name;
         if (time) updateData.time = time;
         if (deliveryFee !== undefined) updateData.deliveryFee = parseFloat(deliveryFee);
         if (image) updateData.image = image;
+
+        // Extended fields for Admin or Full Update
+        if (username) updateData.username = username;
+        if (password) updateData.password = await bcrypt.hash(password, 10);
+        if (categories) updateData.categories = JSON.stringify(categories); // Expect array
+
 
         const updatedRestaurant = await prisma.restaurant.update({
             where: { id },

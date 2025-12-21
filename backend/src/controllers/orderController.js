@@ -53,11 +53,12 @@ const getMyOrders = async (req, res) => {
         if (role === 'CUSTOMER') {
             where.customerId = userId;
         } else if (role === 'DELIVERY_RIDER') {
-            // Repartidores ven sus pedidos asignados O pedidos listos para recoger si están libres
-            // Por simplicidad ahora: solo asignados
+            // Repartidores ven sus pedidos asignados
             where.riderId = userId;
+        } else if (role === 'RESTAURANT') {
+            // Restaurantes ven los pedidos hechos a ellos
+            where.restaurantId = userId; // userId en el token de restaurante es el restaurant.id
         }
-        // TODO: Agregar lógica para Restaurante si tuviéramos login de restaurante separado
 
         const orders = await prisma.order.findMany({
             where,

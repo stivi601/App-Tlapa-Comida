@@ -9,38 +9,58 @@ const API_URL = (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.i
 export default function RestaurantApp() {
     const { orders, updateOrderStatus, restaurants } = useApp();
 
-    // Auth State
-    const [user, setUser] = useState(null);
+    // Auth State - Persist in LocalDate
+    const [user, setUser] = useState(() => {
+        const stored = localStorage.getItem('restaurantUser');
+        return stored ? JSON.parse(stored) : null;
+    });
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loginError, setLoginError] = useState('');
 
     const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'menu'
 
+    // Local Orders State
+    const [myOrders, setMyOrders] = useState([]);
+
+    // Poll for orders
+    useEffect(() => {
+        if (!user?.token) return;
+
+        const fetchOrders = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/orders/my-orders`, {
+                    headers: { 'Authorization': `Bearer ${user.token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Map data to match UI expectations if needed, providing fallbacks
+                    const formatted = data.map(o => ({
+                        ...o,
+                        customer: o.customer?.name || "Cliente",
+                        // items stringify for UI compat
+                        items: o.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ')
+                    }));
+                    setMyOrders(formatted);
+                }
+            } catch (e) { console.error("Error polling orders", e); e.message === 'Failed to fetch' && setLoginError('Error de conexión con el servidor. Intenta de nuevo más tarde.'); }
+        };
+
+        fetchOrders();
+        const interval = setInterval(fetchOrders, 10000); // 10s poll
+        return () => clearInterval(interval);
+    }, [user]);
+
     // Form State
     const [newItem, setNewItem] = useState({ name: '', price: '', category: '', desc: '', image: null });
     const [showAddForm, setShowAddForm] = useState(false);
     const [expandedCategory, setExpandedCategory] = useState(null);
 
-    // Sincronizar 'user' con la data actualizada de 'restaurants' del context (que hace polling)
-    // Esto asegura que si cambia el estado isOnline o llegan items nuevos (si se gestionara centralizado), se refleje.
-    // Sin embargo, las ORDENES vienen de 'orders' del context.
-
-    // Si el usuario está logueado, actualizar su referencia
-    if (user) {
-        const updatedUser = restaurants.find(r => r.id === user.id);
-        if (updatedUser && updatedUser !== user) {
-            // Cuidado con loop infinito si la referencia cambia siempre.
-            // En React simple, esto puede causar re-renders si no se controla.
-            // Lo haremos solo al renderizar, tomando 'myRestaurant' derivado.
-        }
-    }
+    // Sync user with updated restaurant data if needed?
+    // We'll skip complex sync for now, assuming local user state is enough for Token.
 
     const myRestaurantId = user?.id;
     const myRestaurant = restaurants.find(r => r.id === myRestaurantId) || user;
-
-    // Filtrar órdenes para este restaurante
-    const myOrders = orders.filter(o => o.restaurantId === myRestaurantId);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -53,7 +73,9 @@ export default function RestaurantApp() {
 
             if (res.ok) {
                 const data = await res.json();
-                setUser({ ...data.restaurant, token: data.token });
+                const sessionUser = { ...data.restaurant, token: data.token };
+                setUser(sessionUser);
+                localStorage.setItem('restaurantUser', JSON.stringify(sessionUser));
                 setLoginError('');
             } else {
                 const err = await res.json();
@@ -62,6 +84,32 @@ export default function RestaurantApp() {
         } catch (error) {
             console.error(error);
             setLoginError('Error de conexión');
+        }
+    };
+
+    const updateOrderStatusApi = async (orderId, status) => {
+        if (!user?.token) return;
+        try {
+            const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (res.ok) {
+                // Update local state immediately for responsiveness
+                setMyOrders(orders => orders.map(o =>
+                    o.id === orderId ? { ...o, status } : o
+                ));
+            } else {
+                alert("Error al actualizar estado");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
         }
     };
 
@@ -181,6 +229,12 @@ export default function RestaurantApp() {
                     <p style={{ color: 'var(--text-light)' }}>{myRestaurant?.name}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button
+                        onClick={() => { localStorage.removeItem('restaurantUser'); setUser(null); }}
+                        style={{ border: 'none', background: 'none', color: '#EF4444', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                        Salir
+                    </button>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'white', padding: '8px 12px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
                         <span style={{ fontSize: '0.9rem', fontWeight: '500', color: myRestaurant?.isOnline ? '#10B981' : '#94A3B8' }}>
                             {myRestaurant?.isOnline ? 'Abierto' : 'Cerrado'}
@@ -193,16 +247,12 @@ export default function RestaurantApp() {
                             onClick={async () => {
                                 try {
                                     const newStatus = !myRestaurant.isOnline;
-                                    // Optimistic update locally (optional, but good UX)
-                                    // Better to call API then refresh
                                     const res = await fetch(`${API_URL}/api/restaurants/${myRestaurantId}/status`, {
                                         method: 'PATCH',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ isOnline: newStatus })
                                     });
                                     if (res.ok) {
-                                        // Trigger global refresh if available, or force reload. 
-                                        // For now we assume AppContext updates or we force a reload.
                                         window.location.reload();
                                     }
                                 } catch (e) { console.error(e); }
@@ -273,8 +323,8 @@ export default function RestaurantApp() {
                             <p style={{ fontSize: '0.9rem', color: 'var(--text-light)' }}>Pedidos Activos</p>
                         </div>
                         <div className="card" style={{ textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '2rem', color: '#10B981' }}>$330</h3>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-light)' }}>Venta Hoy</p>
+                            <h3 style={{ fontSize: '2rem', color: '#10B981' }}>${Math.round(myOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0))}</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-light)' }}>Venta Total</p>
                         </div>
                     </div>
 
@@ -283,17 +333,18 @@ export default function RestaurantApp() {
                         {myOrders.map(order => (
                             <div key={order.id} className="card fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
-                                    <span style={{ fontWeight: '600' }}>#{order.id} - {order.customer}</span>
+                                    <span style={{ fontWeight: '600' }}>#{order.id.slice(0, 8)} - {order.customer}</span>
                                     <span style={{
                                         fontSize: '0.8rem',
                                         padding: '2px 8px',
                                         borderRadius: '12px',
-                                        background: order.status === 'pending' ? '#FFF7ED' : '#F0FDF4',
-                                        color: order.status === 'pending' ? '#C2410C' : '#15803D'
+                                        background: order.status === 'PENDING' ? '#FFF7ED' : '#F0FDF4',
+                                        color: order.status === 'PENDING' ? '#C2410C' : '#15803D'
                                     }}>
-                                        {order.status === 'pending' ? 'Pendiente' :
-                                            order.status === 'preparing' ? 'En Preparación' :
-                                                order.status === 'ready' ? 'Listo para Recoger' : 'Finalizado'}
+                                        {order.status === 'PENDING' ? 'Pendiente' :
+                                            order.status === 'PREPARING' ? 'En Preparación' :
+                                                order.status === 'READY' ? 'Listo para Recoger' :
+                                                    order.status === 'DELIVERING' ? 'En Camino' : 'Finalizado'}
                                     </span>
                                 </div>
 
@@ -303,20 +354,20 @@ export default function RestaurantApp() {
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                                    {order.status === 'pending' && (
+                                    {order.status === 'PENDING' && (
                                         <button
                                             className="btn btn-primary"
                                             style={{ flex: 1, fontSize: '0.9rem' }}
-                                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                                            onClick={() => updateOrderStatusApi(order.id, 'PREPARING')}
                                         >
                                             <ChefHat size={16} /> Preparar
                                         </button>
                                     )}
-                                    {order.status === 'preparing' && (
+                                    {order.status === 'PREPARING' && (
                                         <button
                                             className="btn"
                                             style={{ flex: 1, fontSize: '0.9rem', background: '#10B981', color: 'white' }}
-                                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                                            onClick={() => updateOrderStatusApi(order.id, 'READY')}
                                         >
                                             <CheckCircle size={16} /> Listo para enviar
                                         </button>

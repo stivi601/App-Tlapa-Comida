@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
+import LiveMap from '../components/LiveMap';
 import { useApp } from '../context/AppContext';
 import {
     MapPin, Search, Star, Clock, ShoppingBag, Home, User,
     ArrowLeft, Plus, Minus, ShoppingCart, Trash2, Check,
-    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map, AlertTriangle
+    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map, AlertTriangle, Bike
 } from 'lucide-react';
 
 // Helpers & Constants
@@ -19,6 +20,9 @@ export default function CustomerApp() {
         rateRestaurant, updateOrderStatus, decrementFromCart,
         updateOrder, updateCustomerUser
     } = useApp();
+
+    const [showMap, setShowMap] = useState(false);
+    const [mapOrder, setMapOrder] = useState(null);
 
     const [activeTab, setActiveTab] = useState('home');
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -260,7 +264,7 @@ export default function CustomerApp() {
         );
     }
 
-    if (selectedRestaurant) {
+    if (selectedRestaurant && activeTab === 'home') {
         // Group menu by category
         const menuByCat = (selectedRestaurant.menu || []).reduce((acc, item) => {
             const cat = item.category || 'Otros';
@@ -375,12 +379,51 @@ export default function CustomerApp() {
                         ))}
                     </div>
                 </div>
-            </div>
+
+                {/* Floating Order Button */}
+                {
+                    cart.items.length > 0 && (
+                        <div className="fade-in-up" style={{
+                            position: 'fixed', bottom: '20px', left: '20px', right: '20px', zIndex: 100
+                        }}>
+                            <button
+                                onClick={() => setActiveTab('cart')}
+                                style={{
+                                    width: '100%',
+                                    background: 'var(--primary)',
+                                    color: 'white',
+                                    padding: '1rem',
+                                    borderRadius: '16px',
+                                    border: 'none',
+                                    boxShadow: '0 4px 15px rgba(255, 107, 0, 0.4)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '8px', fontSize: '0.9rem' }}>
+                                        {cart.items.length}
+                                    </span>
+                                    <span>Ordenar</span>
+                                </div>
+                                <span>{formatPrice(cart.total)}</span>
+                            </button>
+                        </div>
+                    )
+                }
+            </div >
         );
     }
 
     return (
         <div style={{ paddingBottom: '80px' }}>
+            {showMap && mapOrder && (
+                <LiveMap order={mapOrder} onClose={() => setShowMap(false)} />
+            )}
             {activeTab === 'home' && (
                 <>
                     {/* Address Selection Modal */}
@@ -684,10 +727,10 @@ export default function CustomerApp() {
                                         const formData = new FormData();
                                         formData.append('image', file);
 
-                                        fetch(`${API_URL}/api/upload`, {
+                                        fetch(`${API_URL} /api/upload`, {
                                             method: 'POST',
                                             headers: {
-                                                'Authorization': `Bearer ${customerUser.token}`
+                                                'Authorization': `Bearer ${customerUser.token} `
                                             },
                                             body: formData
                                         })
@@ -800,16 +843,13 @@ export default function CustomerApp() {
                             </div>
                             <div>
                                 <label className="label">Email</label>
-                                <input name="email" type="email" className="input" defaultValue={customerUser.email} required />
+                                <input name="email" type="email" className="input" defaultValue={customerUser.email} readOnly disabled style={{ background: '#F1F5F9', color: '#94A3B8', cursor: 'not-allowed' }} />
                             </div>
                             <div>
                                 <label className="label">Teléfono</label>
-                                <input name="phone" type="tel" className="input" defaultValue={customerUser.phone} />
+                                <input name="phone" type="tel" className="input" defaultValue={customerUser.phone} readOnly disabled style={{ background: '#F1F5F9', color: '#94A3B8', cursor: 'not-allowed' }} />
                             </div>
-                            <div>
-                                <label className="label">Nueva Contraseña (Opcional)</label>
-                                <input name="password" type="password" className="input" placeholder="Dejar en blanco para mantener actual" />
-                            </div>
+
                             <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Guardar Cambios</button>
                         </form>
                     </div>
@@ -825,10 +865,19 @@ export default function CustomerApp() {
                 );
 
                 if (activeOrder) {
+                    const isDelivering = activeOrder.status === ORDER_STATUS.DELIVERING;
+
                     return (
                         <div
                             className="fade-in-up"
-                            onClick={() => setActiveTab('orders')}
+                            onClick={() => {
+                                if (isDelivering) {
+                                    setMapOrder(activeOrder);
+                                    setShowMap(true);
+                                } else {
+                                    setActiveTab('orders');
+                                }
+                            }}
                             style={{
                                 position: 'fixed',
                                 bottom: '70px', // Justo encima del nav bar
@@ -859,9 +908,9 @@ export default function CustomerApp() {
                                 }}>
                                     {/* Icono dinámico basado en estado */}
                                     {activeOrder.status === ORDER_STATUS.PENDING && <Clock size={20} />}
-                                    {activeOrder.status === ORDER_STATUS.PREPARING && <Smartphone size={20} />} {/* ChefHat no importado, usando Smartphone como fallback visual o Clock */}
+                                    {activeOrder.status === ORDER_STATUS.PREPARING && <Smartphone size={20} />}
                                     {activeOrder.status === ORDER_STATUS.READY && <ShoppingBag size={20} />}
-                                    {activeOrder.status === ORDER_STATUS.DELIVERING && <Map size={20} />}
+                                    {activeOrder.status === ORDER_STATUS.DELIVERING && <Bike size={20} />}
                                 </div>
                                 <div>
                                     <p style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1E293B' }}>
@@ -880,7 +929,7 @@ export default function CustomerApp() {
                                 fontSize: '0.75rem',
                                 fontWeight: '600'
                             }}>
-                                Ver
+                                {isDelivering ? 'Ver Mapa' : 'Ver Estado'}
                             </div>
                         </div>
                     );

@@ -173,3 +173,13 @@ model Notification {
   
   @@map("notifications")
 }
+
+// ============================================
+// CATEGORÍAS GLOBALES
+// ============================================
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  image String?
+}
