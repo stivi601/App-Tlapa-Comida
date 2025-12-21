@@ -5,11 +5,25 @@ async function main() {
     console.log('🌱 Iniciando seed de base de datos...');
 
     // Limpiar BD existente
+    await prisma.user.deleteMany(); // Agregar limpieza de users
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
     await prisma.menuItem.deleteMany();
     await prisma.restaurant.deleteMany();
     await prisma.deliveryRider.deleteMany();
+
+    // CREAR USUARIO ADMIN
+    const adminUser = await prisma.user.create({
+        data: {
+            username: 'admin',
+            email: 'admin@tlapacomida.com',
+            password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W', // hash de 'admin123'
+            name: 'Administrador',
+            role: 'ADMIN'
+        }
+    });
+    console.log('👤 Usuario Admin creado:', adminUser.username);
+
 
     // 1. Tacos El Paisa
     const tacos = await prisma.restaurant.create({
@@ -121,6 +135,7 @@ async function main() {
     });
 
     console.log('✅ Seed completado!');
+    console.log(`👤 Admin: ${adminUser.username} (password: admin123)`);
     console.log(`🍔 Restaurantes creados: ${tacos.name}, ${burger.name}, ${pizza.name}`);
     console.log(`🛵 Repartidor creado: ${rider1.name} (user: carlos, pass: 123)`);
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Users, Store, TrendingUp, DollarSign, Activity, Trash2, Plus, Camera, Bell, Bike, ShieldCheck, Truck, Search } from 'lucide-react';
+import { Users, Store, TrendingUp, DollarSign, Activity, Trash2, Plus, Camera, Bell, Bike, ShieldCheck, Truck, Search, LogOut } from 'lucide-react';
+import AdminLogin from '../components/AdminLogin';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -10,8 +11,10 @@ export default function AdminApp() {
         restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
         addRestaurant, updateRestaurant, deleteRestaurant,
         registeredUsers, sendMassNotification,
-        deliveryRiders, addDeliveryRider, updateDeliveryRider
-    } = useApp();
+        deliveryRiders, addDeliveryRider, updateDeliveryRider } = useApp();
+
+    // Auth State
+    const [adminUser, setAdminUser] = useState(null);
 
     const [activeSection, setActiveSection] = useState('Dashboard');
     const [newCatName, setNewCatName] = useState('');
@@ -42,10 +45,38 @@ export default function AdminApp() {
         riders: 0
     });
 
+    // Check for saved session on mount
     useEffect(() => {
+        const token = localStorage.getItem('adminToken');
+        if (token) {
+            // Validate token with backend
+            fetch(`${API_URL}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.role === 'ADMIN') {
+                        setAdminUser({ ...data, token });
+                    } else {
+                        localStorage.removeItem('adminToken');
+                    }
+                })
+                .catch(() => {
+                    localStorage.removeItem('adminToken');
+                });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!adminUser) return;
+
         const fetchStats = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/admin/stats`);
+                const res = await fetch(`${API_URL}/api/admin/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${adminUser.token}`
+                    }
+                });
                 if (res.ok) {
                     const data = await res.json();
                     setStats(data);
@@ -55,7 +86,17 @@ export default function AdminApp() {
             }
         };
         fetchStats();
-    }, []);
+    }, [adminUser]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('adminToken');
+        setAdminUser(null);
+    };
+
+    // Show login screen if not authenticated
+    if (!adminUser) {
+        return <AdminLogin onLoginSuccess={setAdminUser} />;
+    }
 
     const totalSales = stats.sales;
 
@@ -112,10 +153,14 @@ export default function AdminApp() {
         <div style={{ display: 'flex', minHeight: '100vh', background: '#F8FAFC' }}>
             {/* Sidebar */}
             <aside style={{ width: '250px', background: '#1E293B', color: 'white', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Activity color="var(--primary)" /> Admin
                 </h2>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ marginBottom: '2rem', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '0.85rem' }}>
+                    <div style={{ color: '#94A3B8', marginBottom: '2px' }}>Sesión activa</div>
+                    <div style={{ fontWeight: '600' }}>{adminUser.username}</div>
+                </div>
+                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
                     {[
                         { name: 'Dashboard', icon: <TrendingUp size={18} /> },
                         { name: 'Restaurantes', icon: <Store size={18} /> },
@@ -144,6 +189,26 @@ export default function AdminApp() {
                         </button>
                     ))}
                 </nav>
+                <button
+                    onClick={handleLogout}
+                    style={{
+                        background: 'rgba(239,68,68,0.1)',
+                        color: '#FCA5A5',
+                        textAlign: 'left',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        marginTop: 'auto'
+                    }}
+                >
+                    <LogOut size={18} />
+                    Cerrar Sesión
+                </button>
             </aside>
 
             {/* Content */}

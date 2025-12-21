@@ -166,8 +166,125 @@ const getProfile = async (req, res) => {
     }
 };
 
+/**
+ * Login de Admin
+ */
+const adminLogin = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({
+                error: 'Usuario y contraseña son requeridos'
+            });
+        }
+
+        // Buscar admin por username con rol ADMIN
+        const admin = await prisma.user.findFirst({
+            where: {
+                username,
+                role: 'ADMIN'
+            }
+        });
+
+        if (!admin) {
+            return res.status(401).json({
+                error: 'Credenciales inválidas'
+            });
+        }
+
+        // Verificar contraseña
+        const isValidPassword = await bcrypt.compare(password, admin.password);
+
+        if (!isValidPassword) {
+            return res.status(401).json({
+                error: 'Credenciales inválidas'
+            });
+        }
+
+        // Generar token
+        const token = jwt.sign(
+            { userId: admin.id, username: admin.username, role: 'ADMIN' },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Retornar usuario sin contraseña
+        const { password: _, ...adminWithoutPassword } = admin;
+
+        res.json({
+            message: 'Login exitoso',
+            user: adminWithoutPassword,
+            token
+        });
+    } catch (error) {
+        console.error('Error en admin login:', error);
+        res.status(500).json({ error: 'Error al iniciar sesión' });
+    }
+};
+
+/**
+ * Login de Restaurante
+ */
+const restaurantLogin = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({
+                error: 'Usuario y contraseña son requeridos'
+            });
+        }
+
+        // Buscar restaurante por username
+        const restaurant = await prisma.restaurant.findFirst({
+            where: { username }
+        });
+
+        if (!restaurant) {
+            return res.status(401).json({
+                error: 'Credenciales inválidas'
+            });
+        }
+
+        // Verificar contraseña
+        const isValidPassword = await bcrypt.compare(password, restaurant.password);
+
+        if (!isValidPassword) {
+            return res.status(401).json({
+                error: 'Credenciales inválidas'
+            });
+        }
+
+        // Generar token con rol RESTAURANT
+        const token = jwt.sign(
+            {
+                userId: restaurant.id,
+                restaurantId: restaurant.id,
+                role: 'RESTAURANT'
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Retornar restaurante sin contraseña
+        const { password: _, ...restaurantWithoutPassword } = restaurant;
+
+        res.json({
+            message: 'Login exitoso',
+            restaurant: restaurantWithoutPassword,
+            token
+        });
+    } catch (error) {
+        console.error('Error en restaurant login:', error);
+        res.status(500).json({ error: 'Error al iniciar sesión' });
+    }
+};
+
 module.exports = {
     register,
     login,
-    getProfile
+    getProfile,
+    adminLogin,
+    restaurantLogin
 };

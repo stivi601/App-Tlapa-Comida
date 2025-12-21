@@ -12,11 +12,10 @@ const { authMiddleware, requireRole } = require('../middleware/auth');
 router.get('/', getAllRestaurants);
 router.get('/:id', getRestaurantById);
 
-// Rutas Protegidas (Solo Admin puede crear restaurantes por ahora)
-router.post('/', authMiddleware, requireRole('ADMIN'), createRestaurant); // TODO: Descomentar auth cuando tengamos users admin
+// Rutas Protegidas (Solo Admin puede crear restaurantes)
+router.post('/', authMiddleware, requireRole('ADMIN'), createRestaurant);
 
-// Rutas Protegidas (Agregar menú - idealmente Admin o el propio Restaurante)
-// Por ahora lo dejamos abierto para facilitar pruebas del seed, o protegido con auth básico
-router.post('/:id/menu', addMenuItem);
+// Rutas Protegidas (Agregar menú - Admin o el propio Restaurante)
+router.post('/:id/menu', authMiddleware, requireRole('ADMIN', 'RESTAURANT'), addMenuItem);
 
 module.exports = router;
