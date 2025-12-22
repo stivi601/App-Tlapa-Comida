@@ -5,7 +5,8 @@ import { useApp } from '../context/AppContext';
 import {
     MapPin, Search, Star, Clock, ShoppingBag, Home, User,
     ArrowLeft, Plus, Minus, ShoppingCart, Trash2, Check,
-    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map, AlertTriangle, Bike
+    X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map, AlertTriangle, Bike,
+    Utensils, CheckCircle
 } from 'lucide-react';
 
 // Helpers & Constants
@@ -42,6 +43,57 @@ export default function CustomerApp() {
     const [authData, setAuthData] = useState({ email: '', password: '', name: '', phone: '' });
     const [authError, setAuthError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Status Stepper Component
+    const StatusStepper = ({ currentStatus }) => {
+        const statuses = [
+            { id: 'PENDING', label: 'Recibido', icon: Clock },
+            { id: 'PREPARING', label: 'Cocina', icon: Utensils },
+            { id: 'READY', label: 'Listo', icon: CheckCircle },
+            { id: 'DELIVERING', label: 'En camino', icon: Bike },
+            { id: 'COMPLETED', label: 'Entregado', icon: Home }
+        ];
+
+        const getStatusIndex = (status) => statuses.findIndex(s => s.id === status);
+        const currentIndex = getStatusIndex(currentStatus);
+
+        return (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5rem 0.5rem', position: 'relative', marginBottom: '1rem' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '10%', right: '10%', height: '2px', background: '#E2E8F0', zIndex: 0, transform: 'translateY(-50%)' }}>
+                    <div style={{
+                        height: '100%',
+                        background: 'var(--primary)',
+                        width: currentIndex === -1 ? '0%' : `${(currentIndex / (statuses.length - 1)) * 100}%`,
+                        transition: 'width 0.5s ease'
+                    }}></div>
+                </div>
+
+                {statuses.map((s, i) => {
+                    const Icon = s.icon;
+                    const isActive = i <= currentIndex;
+                    const isCurrent = i === currentIndex;
+
+                    return (
+                        <div key={s.id} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                            <div style={{
+                                width: '28px', height: '28px', borderRadius: '50%',
+                                background: isCurrent ? 'var(--primary)' : (isActive ? 'var(--primary)' : 'white'),
+                                border: `2px solid ${isActive ? 'var(--primary)' : '#CBD5E1'}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.3s ease',
+                                boxShadow: isCurrent ? '0 0 10px rgba(255, 112, 67, 0.4)' : 'none'
+                            }}>
+                                <Icon size={isActive ? 14 : 12} color={isActive ? 'white' : '#94A3B8'} />
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: isActive ? '700' : '500', color: isActive ? 'var(--text)' : '#94A3B8', whiteSpace: 'nowrap' }}>
+                                {s.label}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -658,7 +710,12 @@ export default function CustomerApp() {
                                 <div style={{ fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '0.8rem' }}>
                                     {order.items}
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.5rem' }}>
+
+                                {order.status !== 'CANCELLED' && (
+                                    <StatusStepper currentStatus={order.status} />
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', alignItems: 'center', borderTop: '0px solid #F1F5F9', paddingTop: '0.5rem' }}>
                                     <span style={{
                                         background: ORDER_STATUS_COLORS[order.status] ? ORDER_STATUS_COLORS[order.status] + '20' : '#F3F4F6',
                                         color: ORDER_STATUS_COLORS[order.status] || '#6B7280',
@@ -678,7 +735,7 @@ export default function CustomerApp() {
                                                 <Trash2 size={14} /> Cancelar
                                             </button>
                                         )}
-                                        {order.status !== ORDER_STATUS.PENDING && order.status !== ORDER_STATUS.COMPLETED && (
+                                        {(order.status === ORDER_STATUS.DELIVERING) && (
                                             <button
                                                 onClick={() => setRatingModalOrder(order)}
                                                 style={{ border: 'none', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>

@@ -21,6 +21,7 @@ const loginRestaurant = async (req, res) => {
         });
 
         if (!restaurant) {
+            console.warn(`[AUTH] Intento de login fallido: usuario no encontrado - ${username}`);
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
@@ -36,6 +37,7 @@ const loginRestaurant = async (req, res) => {
         }
 
         if (!isValid) {
+            console.warn(`[AUTH] Intento de login fallido: password incorrecto - ${username} (${restaurant.password.startsWith('$2') ? 'bcrypt' : 'plain-text'})`);
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 

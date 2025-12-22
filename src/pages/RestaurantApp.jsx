@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChefHat, CheckCircle, Clock, ArrowRight, Plus, Utensils, X, Image, ChevronDown, ChevronUp, Camera, Trash2, Lock, Settings } from 'lucide-react';
 
@@ -34,14 +34,19 @@ export default function RestaurantApp() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    // Map data to match UI expectations if needed, providing fallbacks
-                    const formatted = data.map(o => ({
-                        ...o,
-                        customer: o.customer?.name || "Cliente",
-                        // items stringify for UI compat
-                        items: o.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ')
-                    }));
-                    setMyOrders(formatted);
+                    if (Array.isArray(data)) {
+                        // Map data to match UI expectations if needed, providing fallbacks
+                        const formatted = data.map(o => ({
+                            ...o,
+                            customer: o.customer?.name || "Cliente",
+                            // items stringify for UI compat
+                            items: o.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ')
+                        }));
+                        setMyOrders(formatted);
+                    } else {
+                        console.error("Expected array from my-orders, got:", data);
+                        setMyOrders([]);
+                    }
                 }
             } catch (e) { console.error("Error polling orders", e); e.message === 'Failed to fetch' && setLoginError('Error de conexión con el servidor. Intenta de nuevo más tarde.'); }
         };
