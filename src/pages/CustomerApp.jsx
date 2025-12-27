@@ -6,6 +6,7 @@ import {
     ArrowLeft, Plus, Minus, ShoppingCart, Trash2, Check,
     X, LogOut, Smartphone, Mail, Bell, Edit2, Camera, Map, AlertTriangle
 } from 'lucide-react';
+import LocationPicker from '../components/LocationPicker';
 
 // Helpers & Constants
 import { formatPrice } from '../utils/helpers';
@@ -699,7 +700,7 @@ export default function CustomerApp() {
                                         >
                                             <Edit2 size={16} />
                                         </button>
-                                        <button onClick={() => removeAddress(addr.id)} style={{ color: '#EF4444', background: 'white', border: '1px solid #FEE2E2', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <button onClick={() => removeAddress(addr.id, customerUser.token)} style={{ color: '#EF4444', background: 'white', border: '1px solid #FEE2E2', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
@@ -884,9 +885,9 @@ export default function CustomerApp() {
                             e.preventDefault();
                             if (newAddr.label && newAddr.address) {
                                 if (editingAddressId) {
-                                    updateAddress(editingAddressId, newAddr);
+                                    updateAddress(editingAddressId, newAddr, customerUser.token);
                                 } else {
-                                    addAddress(newAddr);
+                                    addAddress(newAddr, customerUser.token);
                                 }
                                 setNewAddr({ label: '', address: '' });
                                 setEditingAddressId(null);
@@ -902,10 +903,21 @@ export default function CustomerApp() {
                                 />
                             </div>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Dirección Completa</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Ubicación</label>
+                                <LocationPicker
+                                    onLocationSelect={({ lat, lng }) => {
+                                        setNewAddr(prev => ({ ...prev, lat, lng }));
+                                        // Opcional: Aquí podríamos hacer reverse geocoding si LocationPicker no devuelve address
+                                        // Por ahora, asumimos que el usuario escribirá detalles adicionales o LocationPicker devolverá address en el futuro
+                                    }}
+                                />
+                                <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '5px' }}>Mueve el pin a tu ubicación exacta.</p>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Dirección Escrita / Referencias</label>
                                 <textarea
-                                    className="input" style={{ minHeight: '80px', paddingTop: '0.8rem', resize: 'none' }}
-                                    placeholder="Calle, número, colonia..."
+                                    className="input" style={{ minHeight: '60px', paddingTop: '0.8rem', resize: 'none' }}
+                                    placeholder="Calle, número, colonia, color de casa..."
                                     required value={newAddr.address}
                                     onChange={e => setNewAddr({ ...newAddr, address: e.target.value })}
                                 ></textarea>

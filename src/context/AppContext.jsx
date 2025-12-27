@@ -38,10 +38,7 @@ export const AppProvider = ({ children }) => {
     const [cart, setCart] = useState({ restaurantName: null, items: [], total: 0 });
 
     // Datos Adicionales (Direcciones, Notificaciones, etc.)
-    const [customerAddresses, setCustomerAddresses] = useState([
-        { id: 1, label: 'Casa', address: 'Calle 5 Poniente #12, Centro' },
-        { id: 2, label: 'Trabajo', address: 'Av. Universidad #100, Col. Roma' }
-    ]);
+    const [customerAddresses, setCustomerAddresses] = useState([]);
     // registeredUsers eliminado: ahora se gestiona directamente desde la API en AdminApp
     const [systemNotifications, setSystemNotifications] = useState([
         { id: 1, title: '¡Bienvenido!', message: 'Gracias por descargar Tlapa Comida.', date: 'Ahora' }
@@ -210,6 +207,7 @@ export const AppProvider = ({ children }) => {
             if (!res.ok) throw new Error(result.error);
 
             setCustomerUser({ ...result.user, token: result.token });
+            loadAddresses(result.token);
             return { success: true };
         } catch (error) {
             console.error("Login error", error);
@@ -249,12 +247,55 @@ export const AppProvider = ({ children }) => {
         setCustomerUser(updated);
     };
 
-    const addAddress = (addr) => {
-        setCustomerAddresses([...customerAddresses, { id: Date.now(), ...addr }]);
+
+
+    const loadAddresses = async (token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/users/addresses`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setCustomerAddresses(data);
+            }
+        } catch (error) {
+            console.error("Error loading addresses", error);
+        }
     };
 
-    const removeAddress = (id) => {
-        setCustomerAddresses(customerAddresses.filter(a => a.id !== id));
+    const addAddress = async (addr, token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/users/addresses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(addr)
+            });
+            if (res.ok) {
+                const newAddr = await res.json();
+                setCustomerAddresses([...customerAddresses, newAddr]);
+                return true;
+            }
+        } catch (error) {
+            console.error("Error adding address", error);
+        }
+        return false;
+    };
+
+    const removeAddress = async (id, token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/users/addresses/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setCustomerAddresses(customerAddresses.filter(a => a.id !== id));
+            }
+        } catch (error) {
+            console.error("Error deleting address", error);
+        }
     };
 
     const updateAddress = (id, data) => {

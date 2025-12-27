@@ -41,6 +41,8 @@ model Address {
   id        String   @id @default(uuid())
   label     String   // "Casa", "Trabajo", etc.
   address   String
+  lat       Float?   // Latitud
+  lng       Float?   // Longitud
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
