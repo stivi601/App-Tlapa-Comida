@@ -5,13 +5,38 @@ import AdminLogin from '../components/AdminLogin';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export default function AdminApp() {
-    const {
-        restaurants, orders,
-        restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
-        addRestaurant, updateRestaurant, deleteRestaurant,
-        sendMassNotification,
-        deliveryRiders, addDeliveryRider, updateDeliveryRider } = useApp();
+const {
+    restaurants, orders,
+    restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
+    addRestaurant, updateRestaurant, deleteRestaurant,
+    sendMassNotification,
+    deliveryRiders, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders } = useApp();
+
+// ... (rest of code)
+
+// En useEffect fetchData:
+// Fetch Users
+const usersRes = await fetch(`${API_URL}/api/admin/users`, {
+    headers: { 'Authorization': `Bearer ${adminUser.token}` }
+});
+if (usersRes.ok) {
+    const usersData = await usersRes.json();
+    setUsers(usersData);
+}
+
+// Load Riders
+loadDeliveryRiders(adminUser.token);
+
+// ...
+const handleSaveRestaurant = async (e) => {
+    e.preventDefault();
+    if (restFormData.id) {
+        await updateRestaurant(restFormData.id, restFormData, adminUser.token);
+    } else {
+        await addRestaurant(restFormData, adminUser.token);
+    }
+    setShowRestForm(false);
+    // ...
 
     // Auth State
     const [adminUser, setAdminUser] = useState(null);
@@ -92,6 +117,10 @@ export default function AdminApp() {
                     const usersData = await usersRes.json();
                     setUsers(usersData);
                 }
+
+                // Load Delivery Riders
+                loadDeliveryRiders(adminUser.token);
+
             } catch (error) {
                 console.error("Error loading admin data", error);
             }
@@ -111,12 +140,12 @@ export default function AdminApp() {
 
     const totalSales = stats.sales;
 
-    const handleSaveRestaurant = (e) => {
+    const handleSaveRestaurant = async (e) => {
         e.preventDefault();
         if (restFormData.id) {
-            updateRestaurant(restFormData.id, restFormData);
+            await updateRestaurant(restFormData.id, restFormData, adminUser.token);
         } else {
-            addRestaurant(restFormData);
+            await addRestaurant(restFormData, adminUser.token);
         }
         setShowRestForm(false);
         setRestFormData({ id: null, name: '', username: '', password: '', categories: [] });
@@ -144,12 +173,12 @@ export default function AdminApp() {
         setTimeout(() => setNotifSent(false), 3000);
     };
 
-    const handleSaveRider = (e) => {
+    const handleSaveRider = async (e) => {
         e.preventDefault();
         if (riderFormData.id) {
-            updateDeliveryRider(riderFormData.id, riderFormData);
+            await updateDeliveryRider(riderFormData.id, riderFormData, adminUser.token);
         } else {
-            addDeliveryRider(riderFormData);
+            await addDeliveryRider(riderFormData, adminUser.token);
         }
         setShowRiderForm(false);
         setRiderFormData({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '' });
@@ -554,7 +583,7 @@ export default function AdminApp() {
                                         <h3 style={{ fontSize: '1.1rem' }}>{r.name}</h3>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             <button onClick={() => handleEditRestaurant(r)} style={{ fontSize: '0.8rem', color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer' }}>Editar</button>
-                                            <button onClick={() => { if (window.confirm('Eliminar?')) deleteRestaurant(r.id) }} style={{ fontSize: '0.8rem', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>Borrar</button>
+                                            <button onClick={() => { if (window.confirm('Eliminar?')) deleteRestaurant(r.id, adminUser.token) }} style={{ fontSize: '0.8rem', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>Borrar</button>
                                         </div>
                                     </div>
 

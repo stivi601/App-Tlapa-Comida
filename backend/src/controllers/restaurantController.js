@@ -113,7 +113,53 @@ const addMenuItem = async (req, res) => {
 
 module.exports = {
     getAllRestaurants,
-    getRestaurantById,
-    createRestaurant,
-    addMenuItem
+    addMenuItem,
+    updateRestaurant,
+    deleteRestaurant
+};
+
+/**
+ * Actualizar restaurante (Solo Admin)
+ * PUT /api/restaurants/:id
+ */
+const updateRestaurant = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        // Evitar actualizar ID
+        delete data.id;
+
+        // Si viene categories como array, convertir a string para DB
+        if (data.categories && Array.isArray(data.categories)) {
+            data.categories = JSON.stringify(data.categories);
+        }
+
+        const updated = await prisma.restaurant.update({
+            where: { id },
+            data
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Error al actualizar restaurante:', error);
+        res.status(500).json({ error: 'Error al actualizar restaurante' });
+    }
+};
+
+/**
+ * Eliminar restaurante (Solo Admin)
+ * DELETE /api/restaurants/:id
+ */
+const deleteRestaurant = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.restaurant.delete({
+            where: { id }
+        });
+        res.json({ message: 'Restaurante eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar restaurante:', error);
+        res.status(500).json({ error: 'Error al eliminar restaurante' });
+    }
 };

@@ -46,9 +46,7 @@ export const AppProvider = ({ children }) => {
     const [systemNotifications, setSystemNotifications] = useState([
         { id: 1, title: '¡Bienvenido!', message: 'Gracias por descargar Tlapa Comida.', date: 'Ahora' }
     ]);
-    const [deliveryRiders, setDeliveryRiders] = useState([
-        { id: 1, name: 'Carlos Velasquez', username: 'carlos', password: '123', phone: '757-123-4567', rfc: 'VEVC900101', email: 'carlos@tlapa.com', address: 'Calle Principal #10', image: null, totalDeliveries: 5 }
-    ]);
+    const [deliveryRiders, setDeliveryRiders] = useState([]);
 
     // Cargar restaurantes desde el Backend al iniciar
     useEffect(() => {
@@ -130,22 +128,58 @@ export const AppProvider = ({ children }) => {
         setRestaurantCategories(restaurantCategories.filter(c => c !== name));
     };
 
-    const addRestaurant = (data) => {
-        const newRest = {
-            id: Date.now(),
-            menu: [],
-            rating: 5.0,
-            ...data
-        };
-        setRestaurants([...restaurants, newRest]);
+    const addRestaurant = async (data, token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const newRest = await res.json();
+                setRestaurants([...restaurants, newRest]);
+                return true;
+            }
+        } catch (error) {
+            console.error("Error adding restaurant", error);
+        }
+        return false;
     };
 
-    const updateRestaurant = (id, data) => {
-        setRestaurants(restaurants.map(r => r.id === id ? { ...r, ...data } : r));
+    const updateRestaurant = async (id, data, token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setRestaurants(restaurants.map(r => r.id === id ? { ...r, ...updated } : r));
+            }
+        } catch (error) {
+            console.error("Error updating restaurant", error);
+        }
     };
 
-    const deleteRestaurant = (id) => {
-        setRestaurants(restaurants.filter(r => r.id !== id));
+    const deleteRestaurant = async (id, token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setRestaurants(restaurants.filter(r => r.id !== id));
+            }
+        } catch (error) {
+            console.error("Error deleting restaurant", error);
+        }
     };
 
 
@@ -249,20 +283,67 @@ export const AppProvider = ({ children }) => {
         return false;
     };
 
-    const addDeliveryRider = (riderData) => {
-        const newRider = {
-            id: Date.now(),
-            totalDeliveries: 0,
-            image: null,
-            ...riderData
-        };
-        setDeliveryRiders([...deliveryRiders, newRider]);
+    const addDeliveryRider = async (riderData, token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/delivery/riders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(riderData)
+            });
+            if (res.ok) {
+                const newRider = await res.json();
+                setDeliveryRiders([...deliveryRiders, newRider]);
+                return true;
+            }
+        } catch (error) {
+            console.error("Error adding rider", error);
+        }
+        return false;
     };
 
-    const updateDeliveryRider = (id, data) => {
-        setDeliveryRiders(deliveryRiders.map(r => r.id === id ? { ...r, ...data } : r));
-        if (deliveryUser?.id === id) {
-            setDeliveryUser({ ...deliveryUser, ...data });
+    const updateDeliveryRider = async (id, data, token) => {
+        // Si no hay token (ej. actualización interna de status), manejamos diferente o requerimos token sistema?
+        // Para AdminApp siempre habrá token. Para update interno (status), se usa otro endpoint.
+        // Asumiremos uso Admin aquí.
+        if (!token) {
+            // Fallback updates locales si no es admin operation (ej. simulaciones, aunque deberíamos mover todo a backend)
+            setDeliveryRiders(deliveryRiders.map(r => r.id === id ? { ...r, ...data } : r));
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/api/delivery/riders/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setDeliveryRiders(deliveryRiders.map(r => r.id === id ? { ...r, ...updated } : r));
+            }
+        } catch (error) {
+            console.error("Error updating rider", error);
+        }
+    };
+
+    // Función para cargar riders (llamada desde AdminApp)
+    const loadDeliveryRiders = async (token) => {
+        try {
+            const res = await fetch(`${API_URL}/api/delivery/riders`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setDeliveryRiders(data);
+            }
+        } catch (error) {
+            console.error("Error loading riders", error);
         }
     };
 
@@ -483,7 +564,7 @@ export const AppProvider = ({ children }) => {
             customerUser, loginCustomer, logoutCustomer, registerCustomer,
             customerAddresses, addAddress, removeAddress, updateAddress,
             systemNotifications, sendMassNotification,
-            deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, rateRestaurant, setDeliveryUser,
+            deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders, rateRestaurant, setDeliveryUser,
             updateOrder, updateCustomerUser
         }}>
             {children}

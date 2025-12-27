@@ -109,5 +109,101 @@ const getRiderStats = async (req, res) => {
 module.exports = {
     loginRider,
     toggleStatus,
-    getRiderStats
+    getRiderStats,
+    getAllRiders,
+    createRider,
+    updateRider,
+    deleteRider
+};
+
+/**
+ * Admin: Obtener todos los repartidores
+ * GET /api/delivery/riders
+ */
+const getAllRiders = async (req, res) => {
+    try {
+        const riders = await prisma.deliveryRider.findMany({
+            orderBy: { name: 'asc' }
+        });
+        res.json(riders);
+    } catch (error) {
+        console.error('Error fetching riders:', error);
+        res.status(500).json({ error: 'Error al obtener repartidores' });
+    }
+};
+
+/**
+ * Admin: Crear Repartidor
+ * POST /api/delivery/riders
+ */
+const createRider = async (req, res) => {
+    try {
+        const { name, username, password, phone, rfc, email, address, assignedRestaurant } = req.body;
+
+        // Hashear password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newRider = await prisma.deliveryRider.create({
+            data: {
+                name,
+                username,
+                password: hashedPassword,
+                phone,
+                rfc,
+                email,
+                address,
+                assignedRestaurant,
+                totalDeliveries: 0,
+                isOnline: false
+            }
+        });
+
+        res.status(201).json(newRider);
+    } catch (error) {
+        console.error('Error creating rider:', error);
+        res.status(500).json({ error: 'Error al crear repartidor' });
+    }
+};
+
+/**
+ * Admin: Actualizar Repartidor
+ * PUT /api/delivery/riders/:id
+ */
+const updateRider = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+        delete data.id; // Evitar update id
+
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
+        }
+
+        const updated = await prisma.deliveryRider.update({
+            where: { id },
+            data
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Error updating rider:', error);
+        res.status(500).json({ error: 'Error al actualizar repartidor' });
+    }
+};
+
+/**
+ * Admin: Eliminar Repartidor
+ * DELETE /api/delivery/riders/:id
+ */
+const deleteRider = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.deliveryRider.delete({
+            where: { id }
+        });
+        res.json({ message: 'Repartidor eliminado' });
+    } catch (error) {
+        console.error('Error deleting rider:', error);
+        res.status(500).json({ error: 'Error al eliminar repartidor' });
+    }
 };
