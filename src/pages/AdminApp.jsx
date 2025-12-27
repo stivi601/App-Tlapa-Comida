@@ -10,7 +10,7 @@ export default function AdminApp() {
         restaurants, orders,
         restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
         addRestaurant, updateRestaurant, deleteRestaurant,
-        registeredUsers, sendMassNotification,
+        sendMassNotification,
         deliveryRiders, addDeliveryRider, updateDeliveryRider } = useApp();
 
     // Auth State
@@ -45,6 +45,9 @@ export default function AdminApp() {
         riders: 0
     });
 
+    // Users List State
+    const [users, setUsers] = useState([]);
+
     // Check for saved session on mount
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
@@ -70,22 +73,30 @@ export default function AdminApp() {
     useEffect(() => {
         if (!adminUser) return;
 
-        const fetchStats = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/admin/stats`, {
-                    headers: {
-                        'Authorization': `Bearer ${adminUser.token}`
-                    }
+                // Fetch Stats
+                const statsRes = await fetch(`${API_URL}/api/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${adminUser.token}` }
                 });
-                if (res.ok) {
-                    const data = await res.json();
+                if (statsRes.ok) {
+                    const data = await statsRes.json();
                     setStats(data);
                 }
+
+                // Fetch Users
+                const usersRes = await fetch(`${API_URL}/api/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${adminUser.token}` }
+                });
+                if (usersRes.ok) {
+                    const usersData = await usersRes.json();
+                    setUsers(usersData);
+                }
             } catch (error) {
-                console.error("Error loading admin stats", error);
+                console.error("Error loading admin data", error);
             }
         };
-        fetchStats();
+        fetchData();
     }, [adminUser]);
 
     const handleLogout = () => {
@@ -302,10 +313,10 @@ export default function AdminApp() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {registeredUsers.filter(u =>
+                                    {users.filter(u =>
                                         u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
                                         u.email.toLowerCase().includes(searchUser.toLowerCase()) ||
-                                        u.phone.includes(searchUser)
+                                        (u.phone && u.phone.includes(searchUser))
                                     ).map(user => (
                                         <tr key={user.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                             <td style={{ padding: '1rem', fontSize: '0.95rem' }}>{user.name}</td>
@@ -330,7 +341,7 @@ export default function AdminApp() {
                         <div className="card" style={{ maxWidth: '600px' }}>
                             {notifSent && (
                                 <div style={{ background: '#DCFCE7', color: '#15803D', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <TrendingUp size={18} /> ¡Notificación enviada exitosamente a {registeredUsers.length} usuarios!
+                                    <TrendingUp size={18} /> ¡Notificación enviada exitosamente a {users.length} usuarios!
                                 </div>
                             )}
 

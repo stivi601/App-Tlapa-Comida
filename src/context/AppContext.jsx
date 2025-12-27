@@ -42,10 +42,7 @@ export const AppProvider = ({ children }) => {
         { id: 1, label: 'Casa', address: 'Calle 5 Poniente #12, Centro' },
         { id: 2, label: 'Trabajo', address: 'Av. Universidad #100, Col. Roma' }
     ]);
-    const [registeredUsers, setRegisteredUsers] = useState([
-        { id: 'cust1', name: 'Juan Perez', email: 'juan@example.com', phone: '555-1234', date: '2025-10-01' },
-        { id: 'cust2', name: 'Ana Garcia', email: 'ana@example.com', phone: '555-4321', date: '2025-11-15' }
-    ]);
+    // registeredUsers eliminado: ahora se gestiona directamente desde la API en AdminApp
     const [systemNotifications, setSystemNotifications] = useState([
         { id: 1, title: '¡Bienvenido!', message: 'Gracias por descargar Tlapa Comida.', date: 'Ahora' }
     ]);
@@ -216,7 +213,6 @@ export const AppProvider = ({ children }) => {
         if (!customerUser) return;
         const updated = { ...customerUser, ...data };
         setCustomerUser(updated);
-        setRegisteredUsers(registeredUsers.map(u => u.id === customerUser.id ? updated : u));
     };
 
     const addAddress = (addr) => {
@@ -486,7 +482,7 @@ export const AppProvider = ({ children }) => {
             addRestaurant, updateRestaurant, deleteRestaurant, loginRestaurant,
             customerUser, loginCustomer, logoutCustomer, registerCustomer,
             customerAddresses, addAddress, removeAddress, updateAddress,
-            registeredUsers, systemNotifications, sendMassNotification,
+            systemNotifications, sendMassNotification,
             deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, rateRestaurant, setDeliveryUser,
             updateOrder, updateCustomerUser
         }}>
