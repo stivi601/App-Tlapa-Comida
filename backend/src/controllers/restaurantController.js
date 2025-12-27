@@ -111,12 +111,6 @@ const addMenuItem = async (req, res) => {
     }
 };
 
-module.exports = {
-    getAllRestaurants,
-    addMenuItem,
-    updateRestaurant,
-    deleteRestaurant
-};
 
 /**
  * Actualizar restaurante (Solo Admin)
@@ -162,4 +156,13 @@ const deleteRestaurant = async (req, res) => {
         console.error('Error al eliminar restaurante:', error);
         res.status(500).json({ error: 'Error al eliminar restaurante' });
     }
+};
+
+module.exports = {
+    getAllRestaurants,
+    getRestaurantById,
+    createRestaurant,
+    addMenuItem,
+    updateRestaurant,
+    deleteRestaurant
 };
