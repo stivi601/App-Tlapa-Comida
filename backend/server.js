@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors()); // Permite peticiones desde el Frontend (Vite)
-app.use(express.json()); // Permite leer JSON en las peticiones
+app.use(express.json({ limit: '50mb' })); // Permite leer JSON en las peticiones (aumentado para imágenes base64)
 
 // Rutas de prueba
 app.get('/', (req, res) => {

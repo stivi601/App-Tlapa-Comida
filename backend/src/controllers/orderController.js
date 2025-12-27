@@ -6,7 +6,7 @@ const prisma = require('../utils/prisma');
  */
 const createOrder = async (req, res) => {
     try {
-        const { restaurantId, items, total, addressId } = req.body;
+        const { restaurantId, items, total, addressId, deliveryAddress, deliveryLat, deliveryLng } = req.body;
         const userId = req.user.userId; // Del token JWT
 
         // Crear el pedido con sus items en una transacción
@@ -16,7 +16,11 @@ const createOrder = async (req, res) => {
                 restaurantId,
                 total: parseFloat(total),
                 status: 'PENDING',
-                // addressId: addressId, // TODO: Agregar relación de dirección si es necesario
+                // Persistir ubicación de entrega snapshot
+                deliveryAddress: deliveryAddress || "Dirección no especificada",
+                deliveryLat: deliveryLat ? parseFloat(deliveryLat) : null,
+                deliveryLng: deliveryLng ? parseFloat(deliveryLng) : null,
+
                 items: {
                     create: items.map(item => ({
                         menuItemId: item.id,

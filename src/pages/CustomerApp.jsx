@@ -28,7 +28,14 @@ export default function CustomerApp() {
     const [showNotificationsModal, setShowNotificationsModal] = useState(false);
     const [showAddAddress, setShowAddAddress] = useState(false);
     const [newAddr, setNewAddr] = useState({ label: '', address: '' });
-    const [editingAddressId, setEditingAddressId] = useState(null);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+    // Seleccionar automáticamente la primera dirección al cargar
+    useEffect(() => {
+        if (customerAddresses.length > 0 && !selectedAddressId) {
+            setSelectedAddressId(customerAddresses[0].id);
+        }
+    }, [customerAddresses]);
     const [ratingModalOrder, setRatingModalOrder] = useState(null);
     const [selectedStars, setSelectedStars] = useState(0);
 
@@ -571,232 +578,290 @@ export default function CustomerApp() {
                                     </div>
                                 ))}
                             </div>
+
+
+                            <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#64748B' }}>Entregar en:</label>
+                                {customerAddresses.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {customerAddresses.map(addr => (
+                                            <div
+                                                key={addr.id}
+                                                onClick={() => setSelectedAddressId(addr.id)}
+                                                style={{
+                                                    padding: '0.8rem',
+                                                    borderRadius: '10px',
+                                                    border: selectedAddressId === addr.id ? '2px solid var(--primary)' : '1px solid #E2E8F0',
+                                                    background: selectedAddressId === addr.id ? '#EFF6FF' : 'white',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.8rem'
+                                                }}
+                                            >
+                                                <MapPin size={18} color={selectedAddressId === addr.id ? 'var(--primary)' : '#94A3B8'} />
+                                                <div>
+                                                    <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{addr.label}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748B' }}>{addr.address}</div>
+                                                </div>
+                                                {selectedAddressId === addr.id && <Check size={16} color="var(--primary)" style={{ marginLeft: 'auto' }} />}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ padding: '1rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '10px', color: '#64748B' }}>
+                                        No tienes direcciones guardadas.
+                                        <button onClick={() => setActiveTab('profile')} style={{ color: 'var(--primary)', fontWeight: 'bold', border: 'none', background: 'none', cursor: 'pointer', marginLeft: '5px' }}>Agregar una en Perfil</button>
+                                    </div>
+                                )}
+                            </div>
+
                             <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
                                     <span>Total</span>
                                     <span>{formatPrice(cart.total)}</span>
                                 </div>
-                                <button onClick={() => { placeOrder(); setActiveTab('orders'); }} className="btn btn-primary" style={{ width: '100%' }}>
+                                <button
+                                    onClick={() => {
+                                        const addr = customerAddresses.find(a => a.id === selectedAddressId);
+                                        if (!addr) {
+                                            alert("Selecciona una dirección de entrega");
+                                            return;
+                                        }
+                                        placeOrder(addr);
+                                        setActiveTab('orders');
+                                    }}
+                                    className="btn btn-primary"
+                                    style={{ width: '100%' }}
+                                    disabled={customerAddresses.length === 0}
+                                >
                                     Confirmar Pedido
                                 </button>
                             </div>
                         </>
                     )}
                 </div>
-            )}
+            )
+            }
 
-            {activeTab === 'orders' && (
-                <div className="fade-in" style={{ padding: '1rem' }}>
-                    <h2 style={{ marginBottom: '1.5rem' }}>Mis Pedidos</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {orders.map(order => (
-                            <div key={order.id} className="card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{order.restaurant}</span>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <span style={{ color: 'var(--primary)', fontWeight: '600', display: 'block' }}>{formatPrice(order.total)}</span>
-                                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>#{order.id}</span>
-                                    </div>
-                                </div>
-                                <div style={{ fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '0.8rem' }}>
-                                    {order.items}
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.5rem' }}>
-                                    <span style={{
-                                        background: ORDER_STATUS_COLORS[order.status] ? ORDER_STATUS_COLORS[order.status] + '20' : '#F3F4F6',
-                                        color: ORDER_STATUS_COLORS[order.status] || '#6B7280',
-                                        padding: '4px 10px',
-                                        borderRadius: '20px',
-                                        fontWeight: '500',
-                                        textTransform: 'capitalize'
-                                    }}>
-                                        {ORDER_STATUS_LABELS[order.status] || order.status}
-                                    </span>
-
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {order.status === ORDER_STATUS.PENDING && (
-                                            <button
-                                                onClick={() => cancelOrder(order.id)}
-                                                style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                                                <Trash2 size={14} /> Cancelar
-                                            </button>
-                                        )}
-                                        {order.status !== ORDER_STATUS.PENDING && order.status !== ORDER_STATUS.COMPLETED && (
-                                            <button
-                                                onClick={() => setRatingModalOrder(order)}
-                                                style={{ border: 'none', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                                                <Check size={14} /> Confirmar Recibo
-                                            </button>
-                                        )}
-                                        {order.status === ORDER_STATUS.COMPLETED && !order.rating && (
-                                            <button
-                                                onClick={() => { setSelectedStars(0); setRatingModalOrder(order); }}
-                                                style={{ border: 'none', background: '#FEF3C7', color: '#D97706', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                                                <Star size={14} /> Calificar
-                                            </button>
-                                        )}
-                                        {order.status === ORDER_STATUS.COMPLETED && order.rating && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '0.85rem', fontWeight: '600' }}>
-                                                Tu calificación: {order.rating} <Star size={14} fill="#059669" />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'profile' && (
-                <div className="fade-in" style={{ padding: '2rem 1rem' }}>
-                    {/* ... (contenido del perfil existente) ... */}
-                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                        <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 1.5rem' }}>
-                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#F1F5F9', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                                {customerUser.image ? (
-                                    <img src={customerUser.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
-                                        <User size={48} />
-                                    </div>
-                                )}
-                            </div>
-                            <label style={{ position: 'absolute', bottom: '0', right: '0', background: 'var(--primary)', color: 'white', padding: '0.4rem', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                <Camera size={14} />
-                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                        const url = URL.createObjectURL(file);
-                                        updateCustomerUser({ image: url });
-                                    }
-                                }} />
-                            </label>
-                        </div>
-                        <h3 style={{ marginBottom: '0.5rem' }}>{customerUser.name}</h3>
-                        <p style={{ color: 'var(--text-light)' }}>{customerUser.email}</p>
-                        <p style={{ color: 'var(--text-light)' }}>{customerUser.phone}</p>
-                    </div>
-
-                    <div className="card" style={{ marginBottom: '1.5rem' }}>
-                        <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <MapPin size={18} color="var(--primary)" /> Mis Direcciones
-                        </h4>
+            {
+                activeTab === 'orders' && (
+                    <div className="fade-in" style={{ padding: '1rem' }}>
+                        <h2 style={{ marginBottom: '1.5rem' }}>Mis Pedidos</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {customerAddresses.map(addr => (
-                                <div key={addr.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#F8FAFC', borderRadius: '14px' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ fontWeight: '700', fontSize: '1rem' }}>{addr.label}</p>
-                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginTop: '2px' }}>{addr.address}</p>
+                            {orders.map(order => (
+                                <div key={order.id} className="card">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{order.restaurant}</span>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{ color: 'var(--primary)', fontWeight: '600', display: 'block' }}>{formatPrice(order.total)}</span>
+                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>#{order.id}</span>
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
-                                            onClick={() => {
-                                                setEditingAddressId(addr.id);
-                                                setNewAddr({ label: addr.label, address: addr.address });
-                                                setShowAddAddress(true);
-                                            }}
-                                            style={{ color: '#3B82F6', background: 'white', border: '1px solid #E2E8F0', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button onClick={() => removeAddress(addr.id, customerUser.token)} style={{ color: '#EF4444', background: 'white', border: '1px solid #FEE2E2', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Trash2 size={16} />
-                                        </button>
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '0.8rem' }}>
+                                        {order.items}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.5rem' }}>
+                                        <span style={{
+                                            background: ORDER_STATUS_COLORS[order.status] ? ORDER_STATUS_COLORS[order.status] + '20' : '#F3F4F6',
+                                            color: ORDER_STATUS_COLORS[order.status] || '#6B7280',
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            fontWeight: '500',
+                                            textTransform: 'capitalize'
+                                        }}>
+                                            {ORDER_STATUS_LABELS[order.status] || order.status}
+                                        </span>
+
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {order.status === ORDER_STATUS.PENDING && (
+                                                <button
+                                                    onClick={() => cancelOrder(order.id)}
+                                                    style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                                    <Trash2 size={14} /> Cancelar
+                                                </button>
+                                            )}
+                                            {order.status !== ORDER_STATUS.PENDING && order.status !== ORDER_STATUS.COMPLETED && (
+                                                <button
+                                                    onClick={() => setRatingModalOrder(order)}
+                                                    style={{ border: 'none', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                                    <Check size={14} /> Confirmar Recibo
+                                                </button>
+                                            )}
+                                            {order.status === ORDER_STATUS.COMPLETED && !order.rating && (
+                                                <button
+                                                    onClick={() => { setSelectedStars(0); setRatingModalOrder(order); }}
+                                                    style={{ border: 'none', background: '#FEF3C7', color: '#D97706', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                                    <Star size={14} /> Calificar
+                                                </button>
+                                            )}
+                                            {order.status === ORDER_STATUS.COMPLETED && order.rating && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '0.85rem', fontWeight: '600' }}>
+                                                    Tu calificación: {order.rating} <Star size={14} fill="#059669" />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <button
-                            onClick={() => setShowAddAddress(true)}
-                            style={{ marginTop: '1rem', color: 'var(--primary)', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500' }}
-                        >
-                            <Plus size={18} /> Agregar Dirección
+                    </div>
+                )
+            }
+
+            {
+                activeTab === 'profile' && (
+                    <div className="fade-in" style={{ padding: '2rem 1rem' }}>
+                        {/* ... (contenido del perfil existente) ... */}
+                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 1.5rem' }}>
+                                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#F1F5F9', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                                    {customerUser.image ? (
+                                        <img src={customerUser.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                            <User size={48} />
+                                        </div>
+                                    )}
+                                </div>
+                                <label style={{ position: 'absolute', bottom: '0', right: '0', background: 'var(--primary)', color: 'white', padding: '0.4rem', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                                    <Camera size={14} />
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const url = URL.createObjectURL(file);
+                                            updateCustomerUser({ image: url });
+                                        }
+                                    }} />
+                                </label>
+                            </div>
+                            <h3 style={{ marginBottom: '0.5rem' }}>{customerUser.name}</h3>
+                            <p style={{ color: 'var(--text-light)' }}>{customerUser.email}</p>
+                            <p style={{ color: 'var(--text-light)' }}>{customerUser.phone}</p>
+                        </div>
+
+                        <div className="card" style={{ marginBottom: '1.5rem' }}>
+                            <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <MapPin size={18} color="var(--primary)" /> Mis Direcciones
+                            </h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {customerAddresses.map(addr => (
+                                    <div key={addr.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#F8FAFC', borderRadius: '14px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontWeight: '700', fontSize: '1rem' }}>{addr.label}</p>
+                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginTop: '2px' }}>{addr.address}</p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingAddressId(addr.id);
+                                                    setNewAddr({ label: addr.label, address: addr.address });
+                                                    setShowAddAddress(true);
+                                                }}
+                                                style={{ color: '#3B82F6', background: 'white', border: '1px solid #E2E8F0', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button onClick={() => removeAddress(addr.id, customerUser.token)} style={{ color: '#EF4444', background: 'white', border: '1px solid #FEE2E2', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setShowAddAddress(true)}
+                                style={{ marginTop: '1rem', color: 'var(--primary)', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500' }}
+                            >
+                                <Plus size={18} /> Agregar Dirección
+                            </button>
+                        </div>
+
+                        <div className="card" style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                            <div style={{ padding: '0.8rem 0', borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}>Métodos de Pago</div>
+                            <div style={{ padding: '0.8rem 0', cursor: 'pointer' }}>Ayuda y Soporte</div>
+                        </div>
+
+                        <button onClick={logoutCustomer} className="btn" style={{ width: '100%', background: '#FEE2E2', color: '#EF4444', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                            <LogOut size={18} /> Cerrar Sesión
                         </button>
                     </div>
-
-                    <div className="card" style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                        <div style={{ padding: '0.8rem 0', borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}>Métodos de Pago</div>
-                        <div style={{ padding: '0.8rem 0', cursor: 'pointer' }}>Ayuda y Soporte</div>
-                    </div>
-
-                    <button onClick={logoutCustomer} className="btn" style={{ width: '100%', background: '#FEE2E2', color: '#EF4444', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                        <LogOut size={18} /> Cerrar Sesión
-                    </button>
-                </div>
-            )}
+                )
+            }
 
             {/* FLOATING ACTIVE ORDER STATUS BAR */}
-            {(() => {
-                // Encontrar el primer pedido activo (no completado ni cancelado)
-                const activeOrder = orders.find(o =>
-                    o.status !== ORDER_STATUS.COMPLETED &&
-                    o.status !== ORDER_STATUS.CANCELLED
-                );
+            {
+                (() => {
+                    // Encontrar el primer pedido activo (no completado ni cancelado)
+                    const activeOrder = orders.find(o =>
+                        o.status !== ORDER_STATUS.COMPLETED &&
+                        o.status !== ORDER_STATUS.CANCELLED
+                    );
 
-                if (activeOrder) {
-                    return (
-                        <div
-                            className="fade-in-up"
-                            onClick={() => setActiveTab('orders')}
-                            style={{
-                                position: 'fixed',
-                                bottom: '70px', // Justo encima del nav bar
-                                left: '1rem',
-                                right: '1rem',
-                                backgroundColor: 'white',
-                                borderRadius: '16px',
-                                padding: '1rem',
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                zIndex: 90,
-                                cursor: 'pointer',
-                                border: '1px solid #F1F5F9'
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    borderRadius: '50%',
-                                    backgroundColor: ORDER_STATUS_COLORS[activeOrder.status] + '20', // Color con opacidad
+                    if (activeOrder) {
+                        return (
+                            <div
+                                className="fade-in-up"
+                                onClick={() => setActiveTab('orders')}
+                                style={{
+                                    position: 'fixed',
+                                    bottom: '70px', // Justo encima del nav bar
+                                    left: '1rem',
+                                    right: '1rem',
+                                    backgroundColor: 'white',
+                                    borderRadius: '16px',
+                                    padding: '1rem',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: ORDER_STATUS_COLORS[activeOrder.status]
+                                    justifyContent: 'space-between',
+                                    zIndex: 90,
+                                    cursor: 'pointer',
+                                    border: '1px solid #F1F5F9'
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%',
+                                        backgroundColor: ORDER_STATUS_COLORS[activeOrder.status] + '20', // Color con opacidad
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: ORDER_STATUS_COLORS[activeOrder.status]
+                                    }}>
+                                        {/* Icono dinámico basado en estado */}
+                                        {activeOrder.status === ORDER_STATUS.PENDING && <Clock size={20} />}
+                                        {activeOrder.status === ORDER_STATUS.PREPARING && <Smartphone size={20} />} {/* ChefHat no importado, usando Smartphone como fallback visual o Clock */}
+                                        {activeOrder.status === ORDER_STATUS.READY && <ShoppingBag size={20} />}
+                                        {activeOrder.status === ORDER_STATUS.DELIVERING && <Map size={20} />}
+                                    </div>
+                                    <div>
+                                        <p style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1E293B' }}>
+                                            {ORDER_STATUS_LABELS[activeOrder.status]}
+                                        </p>
+                                        <p style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                                            {activeOrder.restaurant} • {activeOrder.time}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    backgroundColor: ORDER_STATUS_COLORS[activeOrder.status],
+                                    color: 'white',
+                                    padding: '4px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600'
                                 }}>
-                                    {/* Icono dinámico basado en estado */}
-                                    {activeOrder.status === ORDER_STATUS.PENDING && <Clock size={20} />}
-                                    {activeOrder.status === ORDER_STATUS.PREPARING && <Smartphone size={20} />} {/* ChefHat no importado, usando Smartphone como fallback visual o Clock */}
-                                    {activeOrder.status === ORDER_STATUS.READY && <ShoppingBag size={20} />}
-                                    {activeOrder.status === ORDER_STATUS.DELIVERING && <Map size={20} />}
-                                </div>
-                                <div>
-                                    <p style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1E293B' }}>
-                                        {ORDER_STATUS_LABELS[activeOrder.status]}
-                                    </p>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748B' }}>
-                                        {activeOrder.restaurant} • {activeOrder.time}
-                                    </p>
+                                    Ver
                                 </div>
                             </div>
-                            <div style={{
-                                backgroundColor: ORDER_STATUS_COLORS[activeOrder.status],
-                                color: 'white',
-                                padding: '4px 12px',
-                                borderRadius: '20px',
-                                fontSize: '0.75rem',
-                                fontWeight: '600'
-                            }}>
-                                Ver
-                            </div>
-                        </div>
-                    );
-                }
-                return null;
-            })()}
+                        );
+                    }
+                    return null;
+                })()
+            }
 
             {/* Bottom Nav */}
             <nav style={{
@@ -843,160 +908,166 @@ export default function CustomerApp() {
             </nav>
 
             {/* Notifications Modal */}
-            {showNotificationsModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-                    <div className="fade-in-up" style={{ background: 'white', width: '100%', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '2rem 1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Notificaciones</h3>
-                            <button onClick={() => setShowNotificationsModal(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {useApp().systemNotifications.length === 0 ? (
-                                <p style={{ textAlign: 'center', color: '#94A3B8', padding: '2rem 0' }}>No tienes notificaciones nuevas.</p>
-                            ) : (
-                                useApp().systemNotifications.map(notif => (
-                                    <div key={notif.id} style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '16px', borderLeft: '4px solid var(--primary)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <h4 style={{ fontSize: '1rem', fontWeight: '600' }}>{notif.title}</h4>
-                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{notif.date}</span>
+            {
+                showNotificationsModal && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
+                        <div className="fade-in-up" style={{ background: 'white', width: '100%', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '2rem 1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Notificaciones</h3>
+                                <button onClick={() => setShowNotificationsModal(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {useApp().systemNotifications.length === 0 ? (
+                                    <p style={{ textAlign: 'center', color: '#94A3B8', padding: '2rem 0' }}>No tienes notificaciones nuevas.</p>
+                                ) : (
+                                    useApp().systemNotifications.map(notif => (
+                                        <div key={notif.id} style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '16px', borderLeft: '4px solid var(--primary)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <h4 style={{ fontSize: '1rem', fontWeight: '600' }}>{notif.title}</h4>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{notif.date}</span>
+                                            </div>
+                                            <p style={{ fontSize: '0.9rem', color: '#64748B', lineHeight: '1.4' }}>{notif.message}</p>
                                         </div>
-                                        <p style={{ fontSize: '0.9rem', color: '#64748B', lineHeight: '1.4' }}>{notif.message}</p>
-                                    </div>
-                                ))
-                            )}
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal for Adding Address */}
-            {showAddAddress && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                    <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', borderRadius: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>{editingAddressId ? 'Editar Dirección' : 'Nueva Dirección'}</h3>
-                            <button onClick={() => { setShowAddAddress(false); setEditingAddressId(null); setNewAddr({ label: '', address: '' }); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                                <X size={24} color="#94A3B8" />
-                            </button>
-                        </div>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            if (newAddr.label && newAddr.address) {
-                                if (editingAddressId) {
-                                    updateAddress(editingAddressId, newAddr, customerUser.token);
-                                } else {
-                                    addAddress(newAddr, customerUser.token);
+            {
+                showAddAddress && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                        <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', borderRadius: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>{editingAddressId ? 'Editar Dirección' : 'Nueva Dirección'}</h3>
+                                <button onClick={() => { setShowAddAddress(false); setEditingAddressId(null); setNewAddr({ label: '', address: '' }); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                    <X size={24} color="#94A3B8" />
+                                </button>
+                            </div>
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                if (newAddr.label && newAddr.address) {
+                                    if (editingAddressId) {
+                                        updateAddress(editingAddressId, newAddr, customerUser.token);
+                                    } else {
+                                        addAddress(newAddr, customerUser.token);
+                                    }
+                                    setNewAddr({ label: '', address: '' });
+                                    setEditingAddressId(null);
+                                    setShowAddAddress(false);
                                 }
-                                setNewAddr({ label: '', address: '' });
-                                setEditingAddressId(null);
-                                setShowAddAddress(false);
-                            }
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Etiqueta (ej. Trabajo, Casa)</label>
-                                <input
-                                    type="text" className="input" placeholder="Nombre para esta dirección"
-                                    required value={newAddr.label}
-                                    onChange={e => setNewAddr({ ...newAddr, label: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Ubicación</label>
-                                <LocationPicker
-                                    onLocationSelect={({ lat, lng }) => {
-                                        setNewAddr(prev => ({ ...prev, lat, lng }));
-                                        // Opcional: Aquí podríamos hacer reverse geocoding si LocationPicker no devuelve address
-                                        // Por ahora, asumimos que el usuario escribirá detalles adicionales o LocationPicker devolverá address en el futuro
-                                    }}
-                                />
-                                <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '5px' }}>Mueve el pin a tu ubicación exacta.</p>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Dirección Escrita / Referencias</label>
-                                <textarea
-                                    className="input" style={{ minHeight: '60px', paddingTop: '0.8rem', resize: 'none' }}
-                                    placeholder="Calle, número, colonia, color de casa..."
-                                    required value={newAddr.address}
-                                    onChange={e => setNewAddr({ ...newAddr, address: e.target.value })}
-                                ></textarea>
-                            </div>
-                            <button type="submit" className="btn btn-primary" style={{ padding: '1rem', borderRadius: '14px', marginTop: '0.5rem' }}>
-                                Guardar Dirección
-                            </button>
-                        </form>
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Etiqueta (ej. Trabajo, Casa)</label>
+                                    <input
+                                        type="text" className="input" placeholder="Nombre para esta dirección"
+                                        required value={newAddr.label}
+                                        onChange={e => setNewAddr({ ...newAddr, label: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Ubicación</label>
+                                    <LocationPicker
+                                        onLocationSelect={({ lat, lng }) => {
+                                            setNewAddr(prev => ({ ...prev, lat, lng }));
+                                            // Opcional: Aquí podríamos hacer reverse geocoding si LocationPicker no devuelve address
+                                            // Por ahora, asumimos que el usuario escribirá detalles adicionales o LocationPicker devolverá address en el futuro
+                                        }}
+                                    />
+                                    <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '5px' }}>Mueve el pin a tu ubicación exacta.</p>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Dirección Escrita / Referencias</label>
+                                    <textarea
+                                        className="input" style={{ minHeight: '60px', paddingTop: '0.8rem', resize: 'none' }}
+                                        placeholder="Calle, número, colonia, color de casa..."
+                                        required value={newAddr.address}
+                                        onChange={e => setNewAddr({ ...newAddr, address: e.target.value })}
+                                    ></textarea>
+                                </div>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '1rem', borderRadius: '14px', marginTop: '0.5rem' }}>
+                                    Guardar Dirección
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Rating Modal */}
-            {ratingModalOrder && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                    <div className="card fade-in" style={{ width: '100%', maxWidth: '350px', padding: '2rem', borderRadius: '24px', textAlign: 'center' }}>
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ width: '60px', height: '60px', background: '#FEF3C7', borderRadius: '20px', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Star size={30} color="#D97706" fill="#D97706" />
+            {
+                ratingModalOrder && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                        <div className="card fade-in" style={{ width: '100%', maxWidth: '350px', padding: '2rem', borderRadius: '24px', textAlign: 'center' }}>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <div style={{ width: '60px', height: '60px', background: '#FEF3C7', borderRadius: '20px', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Star size={30} color="#D97706" fill="#D97706" />
+                                </div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '800' }}>¿Qué te pareció {ratingModalOrder.restaurant}?</h3>
+                                <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.5rem' }}>Tu calificación ayuda a mejorar el servicio.</p>
                             </div>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '800' }}>¿Qué te pareció {ratingModalOrder.restaurant}?</h3>
-                            <p style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '0.5rem' }}>Tu calificación ayuda a mejorar el servicio.</p>
-                        </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-                            {[1, 2, 3, 4, 5].map(star => (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                        key={star}
+                                        onClick={() => setSelectedStars(star)}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.2s' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        <Star
+                                            size={32}
+                                            color={star <= selectedStars ? '#F59E0B' : '#E2E8F0'}
+                                            fill={star <= selectedStars ? '#F59E0B' : 'none'}
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                 <button
-                                    key={star}
-                                    onClick={() => setSelectedStars(star)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.2s' }}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    onClick={() => {
+                                        if (selectedStars > 0) {
+                                            rateRestaurant(ratingModalOrder.restaurant, selectedStars);
+                                            // Update the order itself in the mock state
+                                            updateOrder(ratingModalOrder.id, {
+                                                rating: selectedStars,
+                                                status: 'completed'
+                                            });
+
+                                            setRatingModalOrder(null);
+                                            setSelectedStars(0);
+                                        } else {
+                                            alert("Por favor selecciona una calificación");
+                                        }
+                                    }}
+                                    className="btn btn-primary"
+                                    style={{ padding: '1rem', borderRadius: '14px' }}
                                 >
-                                    <Star
-                                        size={32}
-                                        color={star <= selectedStars ? '#F59E0B' : '#E2E8F0'}
-                                        fill={star <= selectedStars ? '#F59E0B' : 'none'}
-                                    />
+                                    Enviar Calificación
                                 </button>
-                            ))}
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                            <button
-                                onClick={() => {
-                                    if (selectedStars > 0) {
-                                        rateRestaurant(ratingModalOrder.restaurant, selectedStars);
-                                        // Update the order itself in the mock state
-                                        updateOrder(ratingModalOrder.id, {
-                                            rating: selectedStars,
-                                            status: 'completed'
-                                        });
-
+                                <button
+                                    onClick={() => {
+                                        if (ratingModalOrder.status !== 'completed') {
+                                            confirmOrderReceived(ratingModalOrder.id);
+                                        }
                                         setRatingModalOrder(null);
-                                        setSelectedStars(0);
-                                    } else {
-                                        alert("Por favor selecciona una calificación");
-                                    }
-                                }}
-                                className="btn btn-primary"
-                                style={{ padding: '1rem', borderRadius: '14px' }}
-                            >
-                                Enviar Calificación
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (ratingModalOrder.status !== 'completed') {
-                                        confirmOrderReceived(ratingModalOrder.id);
-                                    }
-                                    setRatingModalOrder(null);
-                                }}
-                                style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '0.9rem', cursor: 'pointer' }}
-                            >
-                                Omitir por ahora
-                            </button>
+                                    }}
+                                    style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '0.9rem', cursor: 'pointer' }}
+                                >
+                                    Omitir por ahora
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

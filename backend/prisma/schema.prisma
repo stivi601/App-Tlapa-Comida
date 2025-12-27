@@ -113,6 +113,11 @@ model Order {
   total        Float
   rating       Int?        // 1-5 estrellas
   
+  // Ubicación de Entrega
+  deliveryAddress String?
+  deliveryLat     Float?
+  deliveryLng     Float?
+  
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   

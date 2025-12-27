@@ -189,6 +189,17 @@ const handleSaveRestaurant = async (e) => {
         setShowRiderForm(true);
     };
 
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setRiderFormData({ ...riderFormData, image: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: '#F8FAFC' }}>
             {/* Sidebar */}
@@ -632,7 +643,7 @@ const handleSaveRestaurant = async (e) => {
                                     />
                                 </div>
                                 <button className="btn btn-primary" onClick={() => {
-                                    setRiderFormData({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '' });
+                                    setRiderFormData({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '', image: '' });
                                     setShowRiderForm(true);
                                 }}>
                                     <Plus size={18} /> Nuevo Repartidor
@@ -685,6 +696,21 @@ const handleSaveRestaurant = async (e) => {
                                                     <option key={r.id} value={r.name}>{r.name}</option>
                                                 ))}
                                             </select>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Foto de Perfil (Obligatoria)</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="input"
+                                                required={!riderFormData.id} // Requerido solo si es nuevo
+                                                onChange={handleImageUpload}
+                                            />
+                                            {riderFormData.image && (
+                                                <div style={{ marginTop: '10px' }}>
+                                                    <img src={riderFormData.image} alt="Preview" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '50%' }} />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
