@@ -22,8 +22,9 @@ const options = {
 };
 
 export default function LocationPicker({ onLocationSelect, initialLocation }) {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     const { isLoaded, loadError } = useLoadScript({
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+        googleMapsApiKey: apiKey || "INVALID_KEY", // Evitar crash si es undefined
         libraries,
     });
 
@@ -58,7 +59,10 @@ export default function LocationPicker({ onLocationSelect, initialLocation }) {
         onLocationSelect({ lat, lng });
     };
 
-    if (loadError) return <div>Error cargando mapas</div>;
+    if (!apiKey) {
+        return <div style={{ color: 'red', padding: '10px' }}>Error: Falta VITE_GOOGLE_MAPS_API_KEY</div>;
+    }
+    if (loadError) return <div>Error cargando mapas: {loadError.message}</div>;
     if (!isLoaded) return <div>Cargando Mapa...</div>;
 
     return (

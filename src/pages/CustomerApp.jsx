@@ -972,13 +972,17 @@ export default function CustomerApp() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Ubicación</label>
-                                    <LocationPicker
-                                        onLocationSelect={({ lat, lng }) => {
-                                            setNewAddr(prev => ({ ...prev, lat, lng }));
-                                            // Opcional: Aquí podríamos hacer reverse geocoding si LocationPicker no devuelve address
-                                            // Por ahora, asumimos que el usuario escribirá detalles adicionales o LocationPicker devolverá address en el futuro
-                                        }}
-                                    />
+                                    <ErrorBoundary fallback={
+                                        <div style={{ padding: '1rem', background: '#F1F5F9', borderRadius: '8px', textAlign: 'center', fontSize: '0.9rem' }}>
+                                            Mapa no disponible. Por favor escribe tu dirección abajo.
+                                        </div>
+                                    }>
+                                        <LocationPicker
+                                            onLocationSelect={({ lat, lng }) => {
+                                                setNewAddr(prev => ({ ...prev, lat, lng }));
+                                            }}
+                                        />
+                                    </ErrorBoundary>
                                     <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '5px' }}>Mueve el pin a tu ubicación exacta.</p>
                                 </div>
                                 <div>
