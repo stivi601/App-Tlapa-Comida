@@ -338,6 +338,7 @@ const handleSaveRestaurant = async (e) => {
                                         <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.85rem', color: '#64748B' }}>Nombre</th>
                                         <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.85rem', color: '#64748B' }}>Email</th>
                                         <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.85rem', color: '#64748B' }}>Teléfono</th>
+                                        <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.85rem', color: '#64748B' }}>Rol</th>
                                         <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.85rem', color: '#64748B' }}>Fecha Reg.</th>
                                     </tr>
                                 </thead>
@@ -351,6 +352,15 @@ const handleSaveRestaurant = async (e) => {
                                             <td style={{ padding: '1rem', fontSize: '0.95rem' }}>{user.name}</td>
                                             <td style={{ padding: '1rem', fontSize: '0.95rem', color: '#3B82F6' }}>{user.email}</td>
                                             <td style={{ padding: '1rem', fontSize: '0.95rem' }}>{user.phone}</td>
+                                            <td style={{ padding: '1rem', fontSize: '0.95rem' }}>
+                                                <span style={{
+                                                    background: user.role === 'ADMIN' ? '#FEF3C7' : '#EFF6FF',
+                                                    color: user.role === 'ADMIN' ? '#D97706' : '#3B82F6',
+                                                    padding: '2px 8px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 'bold'
+                                                }}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
                                             <td style={{ padding: '1rem', fontSize: '0.95rem', color: '#64748B' }}>{user.date}</td>
                                         </tr>
                                     ))}

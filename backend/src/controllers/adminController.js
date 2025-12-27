@@ -40,10 +40,7 @@ const getDashboardStats = async (req, res) => {
 const getUsers = async (req, res) => {
     try {
         const users = await prisma.user.findMany({
-            where: { role: 'CUSTOMER' }, // Opcional: solo clientes? Mejor todos o filtrar en frontend. Por ahora mostramos todos, o solo Customers? El mock implicaba clientes. Vamos a mostrar todos menos quiza el admin mismo? O simple findMany. 
-            // El mock decia "Usuarios Registrados". Usually means customers.
-            // Pero si el sistema crece, 'Customer' es el rol clave.
-            // Vamos a filtrar por role: 'CUSTOMER' para que no salga el admin ni otros.
+            // where: { role: 'CUSTOMER' },
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true,
