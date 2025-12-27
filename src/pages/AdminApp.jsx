@@ -794,3 +794,5 @@ const handleSaveRestaurant = async (e) => {
         </div>
     );
 }
+
+export default AdminApp;
