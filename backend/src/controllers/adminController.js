@@ -31,11 +31,7 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-    } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener estadísticas' });
-}
-};
+
 
 /**
  * Obtener lista de usuarios registrados
