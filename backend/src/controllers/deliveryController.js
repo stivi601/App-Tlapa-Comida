@@ -106,16 +106,6 @@ const getRiderStats = async (req, res) => {
     }
 };
 
-module.exports = {
-    loginRider,
-    toggleStatus,
-    getRiderStats,
-    getAllRiders,
-    createRider,
-    updateRider,
-    deleteRider
-};
-
 /**
  * Admin: Obtener todos los repartidores
  * GET /api/delivery/riders
@@ -207,3 +197,14 @@ const deleteRider = async (req, res) => {
         res.status(500).json({ error: 'Error al eliminar repartidor' });
     }
 };
+
+module.exports = {
+    loginRider,
+    toggleStatus,
+    getRiderStats,
+    getAllRiders,
+    createRider,
+    updateRider,
+    deleteRider
+};
+```
