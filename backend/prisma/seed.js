@@ -29,8 +29,10 @@ async function main() {
 
 
     // 1. Tacos El Paisa
-    const tacos = await prisma.restaurant.create({
-        data: {
+    const tacos = await prisma.restaurant.upsert({
+        where: { username: 'paisa' },
+        update: {},
+        create: {
             name: 'Tacos El Paisa',
             username: 'paisa',
             password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W', // hash de '123'
@@ -68,8 +70,10 @@ async function main() {
     });
 
     // 2. Burger King Tlapa
-    const burger = await prisma.restaurant.create({
-        data: {
+    const burger = await prisma.restaurant.upsert({
+        where: { username: 'bk' },
+        update: {},
+        create: {
             name: 'Burger King Tlapa',
             username: 'bk',
             password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W',
@@ -100,8 +104,10 @@ async function main() {
     });
 
     // 3. Pizza Hut
-    const pizza = await prisma.restaurant.create({
-        data: {
+    const pizza = await prisma.restaurant.upsert({
+        where: { username: 'pizza' },
+        update: {},
+        create: {
             name: 'Pizza Hut',
             username: 'pizza',
             password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W',
@@ -125,8 +131,10 @@ async function main() {
     });
 
     // 4. Repartidores
-    const rider1 = await prisma.deliveryRider.create({
-        data: {
+    const rider1 = await prisma.deliveryRider.upsert({
+        where: { username: 'carlos' },
+        update: {},
+        create: {
             name: 'Carlos Veloz',
             username: 'carlos',
             password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W',
