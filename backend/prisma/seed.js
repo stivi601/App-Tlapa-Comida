@@ -4,8 +4,16 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 Iniciando seed de base de datos...');
 
-    // Limpiar BD existente
-    await prisma.user.deleteMany(); // Agregar limpieza de users
+    // Verificar si ya existen datos críticos (Admin)
+    const existingAdmin = await prisma.user.findFirst({ where: { username: 'admin' } });
+
+    if (existingAdmin) {
+        console.log('⚠️ La base de datos ya parece tener datos (Admin existe). Saltando limpieza y recreación para seguridad.');
+        return;
+    }
+
+    // Limpiar BD existente (Solo si no hay admin)
+    await prisma.user.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
     await prisma.menuItem.deleteMany();
