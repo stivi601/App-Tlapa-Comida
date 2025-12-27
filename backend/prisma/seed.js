@@ -1,36 +1,28 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const bcrypt = require('bcryptjs'); // Asegurar importación
 
 async function main() {
     console.log('🌱 Iniciando seed de base de datos...');
 
-    // Verificar si ya existen datos críticos (Admin)
-    const existingAdmin = await prisma.user.findFirst({ where: { username: 'admin' } });
+    // 1. Asegurar Usuario Admin (Upsert para arreglar password si está mal)
+    const adminPassword = await bcrypt.hash('admin123', 10);
 
-    if (existingAdmin) {
-        console.log('⚠️ La base de datos ya parece tener datos (Admin existe). Saltando limpieza y recreación para seguridad.');
-        return;
-    }
-
-    // Limpiar BD existente (Solo si no hay admin)
-    await prisma.user.deleteMany();
-    await prisma.orderItem.deleteMany();
-    await prisma.order.deleteMany();
-    await prisma.menuItem.deleteMany();
-    await prisma.restaurant.deleteMany();
-    await prisma.deliveryRider.deleteMany();
-
-    // CREAR USUARIO ADMIN
-    const adminUser = await prisma.user.create({
-        data: {
+    const adminUser = await prisma.user.upsert({
+        where: { email: 'admin@tlapacomida.com' },
+        update: {
+            password: adminPassword, // Actualizar password si ya existe
+            role: 'ADMIN',
+            username: 'admin'
+        },
+        create: {
             username: 'admin',
             email: 'admin@tlapacomida.com',
-            password: '$2b$10$MIHaL3Q/2e5RiOArqu7N5.d/1TfRVwWnT9wZFdsIq.Nc7JwRpB25W', // hash de 'admin123'
+            password: adminPassword,
             name: 'Administrador',
             role: 'ADMIN'
         }
     });
-    console.log('👤 Usuario Admin creado:', adminUser.username);
+    console.log('👤 Usuario Admin asegurado:', adminUser.username);
+
 
 
     // 1. Tacos El Paisa
