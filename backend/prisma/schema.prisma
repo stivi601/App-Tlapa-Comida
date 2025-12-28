@@ -71,6 +71,7 @@ model Restaurant {
   menu         MenuItem[]
   orders       Order[]
   riders       DeliveryRider[]
+  reviews      Review[]
   
   @@map("restaurants")
 }
@@ -123,8 +124,27 @@ model Order {
   
   // Relaciones
   items        OrderItem[]
+  review       Review?     @relation(fields: [reviewId], references: [id])
+  reviewId     String?     @unique
   
   @@map("orders")
+}
+
+// ============================================
+// CALIFICACIONES Y RESEÑAS
+// ============================================
+
+model Review {
+  id           String     @id @default(uuid())
+  orderId      String     @unique
+  order        Order?     
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  rating       Int        // 1-5 estrellas
+  comment      String?
+  createdAt    DateTime   @default(now())
+
+  @@map("reviews")
 }
 
 // ============================================

@@ -109,26 +109,30 @@ export default function RestaurantApp() {
                 <button
                     onClick={() => setActiveTab('orders')}
                     style={{
-                        padding: '0.5rem 1rem',
+                        padding: '1rem',
+                        flex: 1,
                         background: 'none',
                         border: 'none',
-                        borderBottom: activeTab === 'orders' ? '2px solid var(--primary)' : '2px solid transparent',
+                        borderBottom: activeTab === 'orders' ? '3px solid var(--primary)' : '3px solid transparent',
                         color: activeTab === 'orders' ? 'var(--primary)' : '#94A3B8',
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        fontSize: '1rem'
                     }}>
                     Pedidos
                 </button>
                 <button
                     onClick={() => setActiveTab('menu')}
                     style={{
-                        padding: '0.5rem 1rem',
+                        padding: '1rem',
+                        flex: 1,
                         background: 'none',
                         border: 'none',
-                        borderBottom: activeTab === 'menu' ? '2px solid var(--primary)' : '2px solid transparent',
+                        borderBottom: activeTab === 'menu' ? '3px solid var(--primary)' : '3px solid transparent',
                         color: activeTab === 'menu' ? 'var(--primary)' : '#94A3B8',
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        fontSize: '1rem'
                     }}>
                     Mi Menú
                 </button>
@@ -136,7 +140,7 @@ export default function RestaurantApp() {
 
             {activeTab === 'orders' && (
                 <div className="fade-in">
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                    <div className="grid grid-cols-2 md:grid-cols-2" style={{ gap: '1rem', marginBottom: '2rem' }}>
                         <div className="card" style={{ textAlign: 'center' }}>
                             <h3 style={{ fontSize: '2rem', color: 'var(--primary)' }}>{myOrders.length}</h3>
                             <p style={{ fontSize: '0.9rem', color: 'var(--text-light)' }}>Pedidos Activos</p>
@@ -148,7 +152,7 @@ export default function RestaurantApp() {
                     </div>
 
                     <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Pedidos Recientes</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: '1rem' }}>
                         {myOrders.map(order => (
                             <div key={order.id} className="card fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>

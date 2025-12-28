@@ -402,27 +402,30 @@ export default function DeliveryApp() {
             )}
 
             {/* Bottom Nav */}
-            <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', borderTop: '1px solid #E2E8F0', padding: '0.8rem 1rem', display: 'flex', justifyContent: 'space-around', zIndex: 20 }}>
+            <nav className="mobile-nav" style={{ justifyContent: 'space-around', display: 'flex' }}>
                 <button
                     onClick={() => setActiveTab('orders')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'orders' ? '#10B981' : '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
+                    className={`mobile-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                     <Home size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '700' }}>Mis Pedidos</span>
+                    <span>Mis Pedidos</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('available')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'available' ? '#3B82F6' : '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
+                    className={`mobile-nav-item ${activeTab === 'available' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                     <Layers size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '700', color: activeTab === 'available' ? '#3B82F6' : '#94A3B8' }}>Disponibles</span>
+                    <span style={{ color: activeTab === 'available' ? '#3B82F6' : 'inherit' }}>Disponibles</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('profile')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'profile' ? '#10B981' : '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
+                    className={`mobile-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                     <User size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '700' }}>Perfil</span>
+                    <span>Perfil</span>
                 </button>
             </nav>
         </div>

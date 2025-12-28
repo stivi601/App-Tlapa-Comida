@@ -49,6 +49,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/users', require('./src/routes/users'));
+app.use('/api/reviews', require('./src/routes/reviews'));
+
 
 // Iniciar servidor
 app.listen(PORT, () => {

@@ -7,7 +7,12 @@ const prisma = require('../utils/prisma');
 const createOrder = async (req, res) => {
     try {
         const { restaurantId, items, total, addressId, deliveryAddress, deliveryLat, deliveryLng } = req.body;
-        const userId = req.user.userId; // Del token JWT
+        const { userId, role } = req.user;
+
+        // Solo CUSTOMER puede crear pedidos
+        if (role !== 'CUSTOMER' && role !== 'ADMIN') {
+            return res.status(403).json({ error: 'Solo los clientes pueden crear pedidos.' });
+        }
 
         // Crear el pedido con sus items en una transacción
         const newOrder = await prisma.order.create({
@@ -56,6 +61,8 @@ const getMyOrders = async (req, res) => {
             where.customerId = userId;
         } else if (role === 'RESTAURANT') {
             where.restaurantId = userId;
+        } else if (role === 'DELIVERY_RIDER') {
+            where.riderId = userId;
         }
 
         const orders = await prisma.order.findMany({
@@ -123,8 +130,28 @@ const updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+        const { userId, role } = req.user;
 
-        // Validar transiciones de estado válidas aquí si se desea
+        // Buscar la orden para verificar propiedad
+        const order = await prisma.order.findUnique({ where: { id } });
+
+        if (!order) {
+            return res.status(404).json({ error: 'Pedido no encontrado' });
+        }
+
+        // Validaciones de propiedad por rol
+        if (role === 'RESTAURANT' && order.restaurantId !== userId) {
+            return res.status(403).json({ error: 'No tienes permisos para actualizar este pedido.' });
+        }
+
+        if (role === 'DELIVERY_RIDER' && order.riderId !== userId) {
+            return res.status(403).json({ error: 'Este pedido no te pertenece.' });
+        }
+
+        // Los clientes no pueden actualizar estados (ej. marcar como entregado se hace vía endpoint separado o Admin)
+        if (role === 'CUSTOMER') {
+            return res.status(403).json({ error: 'Acción no permitida para clientes.' });
+        }
 
         const updatedOrder = await prisma.order.update({
             where: { id },
@@ -145,22 +172,26 @@ const updateOrderStatus = async (req, res) => {
 const assignOrder = async (req, res) => {
     try {
         const { id } = req.params; // Order ID
-        const riderId = req.user.userId; // El repartidor que llama al endpoint
+        const { userId, role } = req.user;
+        let finalRiderId = userId;
 
-        /* 
-           Validación extra: Verificar que el pedido no tenga ya un riderId 
-           para evitar condiciones de carrera (dos riders aceptando al mismo tiempo).
-        */
+        // Si es ADMIN, puede estar asignando a un tercero
+        if (role === 'ADMIN' && req.body.riderId) {
+            finalRiderId = req.body.riderId;
+        }
+
+        // Verificar que el pedido no tenga ya un riderId 
+        // para evitar condiciones de carrera (excepto si es ADMIN sobrescribiendo)
         const order = await prisma.order.findUnique({ where: { id } });
-        if (order.riderId) {
+        if (order.riderId && role !== 'ADMIN') {
             return res.status(400).json({ error: 'Este pedido ya fue tomado por otro repartidor.' });
         }
 
         const updatedOrder = await prisma.order.update({
             where: { id },
             data: {
-                riderId: riderId,
-                status: 'PREPARING' // O 'ACCEPTED' si existiera ese estado intermedio
+                riderId: finalRiderId,
+                status: 'PREPARING'
             }
         });
 

@@ -314,3 +314,45 @@ h6 {
   background: #ECFDF5;
   color: var(--success);
 }
+
+/* Admin Sidebar Responsive */
+@media (min-width: 769px) {
+  .admin-sidebar {
+    transform: translateX(0) !important;
+  }
+
+  .admin-main {
+    margin-left: 250px !important;
+  }
+
+  .mobile-show {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-show {
+    display: flex !important;
+  }
+
+  .admin-main {
+    margin-left: 0 !important;
+    padding: 1rem !important;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -159,10 +159,33 @@ export default function AdminApp() {
         }
     };
 
+    const [showSidebar, setShowSidebar] = useState(false);
+
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', background: '#F8FAFC' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', background: '#F8FAFC', position: 'relative' }}>
+            {/* Mobile Sidebar Toggle */}
+            <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                style={{
+                    position: 'fixed', bottom: '20px', right: '20px', zIndex: 1100,
+                    background: 'var(--primary)', color: 'white', border: 'none',
+                    width: '56px', height: '56px', borderRadius: '50%',
+                    display: 'none', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                }}
+                className="mobile-show"
+            >
+                {showSidebar ? <X /> : <Activity />}
+            </button>
+
             {/* Sidebar */}
-            <aside style={{ width: '250px', background: '#1E293B', color: 'white', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+            <aside style={{
+                width: '250px', background: '#1E293B', color: 'white', padding: '1.5rem',
+                display: 'flex', flexDirection: 'column',
+                position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 1000,
+                transition: 'transform 0.3s ease',
+                transform: `translateX(${showSidebar ? '0' : '-100%'})`
+            }} className="admin-sidebar">
                 <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Activity color="var(--primary)" /> Admin
                 </h2>
@@ -221,8 +244,15 @@ export default function AdminApp() {
                 </button>
             </aside>
 
+            {/* Content Overflow Guard */}
+            {showSidebar && <div
+                onClick={() => setShowSidebar(false)}
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900 }}
+                className="mobile-show"
+            />}
+
             {/* Content */}
-            <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+            <main style={{ flex: 1, padding: '1.5rem', marginLeft: '0', transition: 'margin 0.3s ease' }} className="admin-main">
 
                 {activeSection === 'Dashboard' && (
                     <div className="fade-in">
@@ -301,8 +331,8 @@ export default function AdminApp() {
                             </div>
                         </div>
 
-                        <div className="card" style={{ padding: 0 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                            <table style={{ minWidth: '800px', width: '100%', borderCollapse: 'collapse' }}>
                                 <thead style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                                     <tr>
                                         <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.85rem', color: '#64748B' }}>Nombre</th>

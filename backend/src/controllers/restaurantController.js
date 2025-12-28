@@ -95,6 +95,12 @@ const addMenuItem = async (req, res) => {
     try {
         const { id } = req.params; // ID del restaurante
         const { name, description, price, category, image } = req.body;
+        const { userId, role } = req.user;
+
+        // Validar propiedad: El restauranteID debe coincidir con el userId (si es RESTAURANT)
+        if (role === 'RESTAURANT' && id !== userId) {
+            return res.status(403).json({ error: 'No tienes permisos para editar este menú.' });
+        }
 
         const newItem = await prisma.menuItem.create({
             data: {
@@ -111,6 +117,62 @@ const addMenuItem = async (req, res) => {
     } catch (error) {
         console.error('Error al agregar item al menú:', error);
         res.status(500).json({ error: 'Error al agregar platillo' });
+    }
+};
+
+/**
+ * Eliminar item del menú
+ * DELETE /api/restaurants/:id/menu/:itemId
+ */
+const deleteMenuItem = async (req, res) => {
+    try {
+        const { id, itemId } = req.params; // id = restaurantId
+        const { userId, role } = req.user;
+
+        // Validar propiedad
+        if (role === 'RESTAURANT' && id !== userId) {
+            return res.status(403).json({ error: 'No tienes permisos para editar este menú.' });
+        }
+
+        await prisma.menuItem.deleteMany({
+            where: {
+                id: itemId,
+                restaurantId: id
+            }
+        });
+
+        res.json({ message: 'Item eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar item:', error);
+        res.status(500).json({ error: 'Error al eliminar el producto' });
+    }
+};
+
+/**
+ * Eliminar toda una categoría del menú
+ * DELETE /api/restaurants/:id/menu/category/:categoryName
+ */
+const deleteMenuCategory = async (req, res) => {
+    try {
+        const { id, categoryName } = req.params;
+        const { userId, role } = req.user;
+
+        // Validar propiedad
+        if (role === 'RESTAURANT' && id !== userId) {
+            return res.status(403).json({ error: 'No tienes permisos para editar este menú.' });
+        }
+
+        await prisma.menuItem.deleteMany({
+            where: {
+                restaurantId: id,
+                category: categoryName
+            }
+        });
+
+        res.json({ message: 'Categoría eliminada correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar categoría:', error);
+        res.status(500).json({ error: 'Error al eliminar la categoría' });
     }
 };
 
@@ -170,7 +232,8 @@ module.exports = {
     getAllRestaurants,
     getRestaurantById,
     createRestaurant,
-    addMenuItem,
+    deleteMenuItem,
+    deleteMenuCategory,
     updateRestaurant,
     deleteRestaurant
 };

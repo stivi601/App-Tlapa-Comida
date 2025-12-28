@@ -40,13 +40,66 @@ class ErrorBoundary extends React.Component {
     }
 }
 
+const OrderStatusStepper = ({ currentStatus }) => {
+    const statuses = [
+        { key: 'PENDING', label: 'Recibido', icon: <Clock size={16} /> },
+        { key: 'PREPARING', label: 'Cocina', icon: <ShoppingBag size={16} /> },
+        { key: 'READY', label: 'Listo', icon: <Check size={16} /> },
+        { key: 'SHIPPED', label: 'Camino', icon: <Smartphone size={16} /> },
+        { key: 'COMPLETED', label: 'Entregado', icon: <MapPin size={16} /> }
+    ];
+
+    const currentIdx = statuses.findIndex(s => s.key === currentStatus);
+
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5rem 0.5rem', position: 'relative', marginTop: '0.5rem' }}>
+            {/* Line behind steps */}
+            <div style={{
+                position: 'absolute', top: '2.3rem', left: '10%', right: '10%', height: '2px',
+                background: '#E2E8F0', zIndex: 0
+            }}></div>
+            <div style={{
+                position: 'absolute', top: '2.3rem', left: '10%', width: `${(currentIdx / (statuses.length - 1)) * 80}%`, height: '2px',
+                background: 'var(--primary)', zIndex: 0, transition: 'all 0.5s ease-in-out'
+            }}></div>
+
+            {statuses.map((s, i) => {
+                const isActive = i <= currentIdx;
+                const isCurrent = i === currentIdx;
+                return (
+                    <div key={s.key} style={{
+                        zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1
+                    }}>
+                        <div style={{
+                            width: '32px', height: '32px', borderRadius: '50%',
+                            background: isCurrent ? 'var(--primary)' : isActive ? 'var(--primary-light, #FFEDD5)' : 'white',
+                            color: isCurrent ? 'white' : isActive ? 'var(--primary)' : '#94A3B8',
+                            border: `2px solid ${isActive ? 'var(--primary)' : '#E2E8F0'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.3s ease'
+                        }}>
+                            {isActive && i < currentIdx ? <Check size={16} strokeWidth={3} /> : s.icon}
+                        </div>
+                        <span style={{
+                            fontSize: '0.7rem', fontWeight: isCurrent ? '700' : '500',
+                            color: isCurrent ? '#1E293B' : '#94A3B8', textAlign: 'center'
+                        }}>
+                            {s.label}
+                        </span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
 export default function CustomerApp() {
     const {
         restaurants, orders, cart, addToCart, removeFromCart, clearCart, placeOrder, cancelOrder, confirmOrderReceived, restaurantCategories,
         customerUser, loginCustomer, logoutCustomer, registerCustomer,
         customerAddresses, addAddress, removeAddress, updateAddress,
         rateRestaurant, updateOrderStatus, decrementFromCart,
-        updateOrder, updateCustomerUser
+        updateOrder, updateCustomerUser, submitReview
     } = useApp();
 
     const [activeTab, setActiveTab] = useState('home');
@@ -67,6 +120,7 @@ export default function CustomerApp() {
     }, [customerAddresses]);
     const [ratingModalOrder, setRatingModalOrder] = useState(null);
     const [selectedStars, setSelectedStars] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
 
     // Login State
     const [authMode, setAuthMode] = useState('login'); // login | register
@@ -694,6 +748,12 @@ export default function CustomerApp() {
                                     <div style={{ fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '0.8rem' }}>
                                         {order.items}
                                     </div>
+
+                                    {/* Visual Tracking Stepper */}
+                                    {order.status !== ORDER_STATUS.COMPLETED && order.status !== ORDER_STATUS.CANCELLED && (
+                                        <OrderStatusStepper currentStatus={order.status} />
+                                    )}
+
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.5rem' }}>
                                         <span style={{
                                             background: ORDER_STATUS_COLORS[order.status] ? ORDER_STATUS_COLORS[order.status] + '20' : '#F3F4F6',
@@ -1064,34 +1124,47 @@ export default function CustomerApp() {
                                 ))}
                             </div>
 
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <textarea
+                                    className="input"
+                                    placeholder="Escribe un comentario (opcional)"
+                                    style={{ width: '100%', height: '80px', borderRadius: '12px', padding: '10px' }}
+                                    value={reviewComment}
+                                    onChange={(e) => setReviewComment(e.target.value)}
+                                />
+                            </div>
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         if (selectedStars > 0) {
-                                            rateRestaurant(ratingModalOrder.restaurant, selectedStars);
-                                            // Update the order itself in the mock state
-                                            updateOrder(ratingModalOrder.id, {
-                                                rating: selectedStars,
-                                                status: 'completed'
-                                            });
+                                            setIsSubmitting(true);
+                                            const success = await submitReview(ratingModalOrder.id, selectedStars, reviewComment);
+                                            setIsSubmitting(false);
 
-                                            setRatingModalOrder(null);
-                                            setSelectedStars(0);
+                                            if (success) {
+                                                setRatingModalOrder(null);
+                                                setSelectedStars(0);
+                                                setReviewComment('');
+                                            }
                                         } else {
                                             alert("Por favor selecciona una calificación");
                                         }
                                     }}
                                     className="btn btn-primary"
                                     style={{ padding: '1rem', borderRadius: '14px' }}
+                                    disabled={isSubmitting}
                                 >
-                                    Enviar Calificación
+                                    {isSubmitting ? 'Enviando...' : 'Enviar Calificación'}
                                 </button>
                                 <button
                                     onClick={() => {
-                                        if (ratingModalOrder.status !== 'completed') {
+                                        if (ratingModalOrder.status !== ORDER_STATUS.COMPLETED) {
                                             confirmOrderReceived(ratingModalOrder.id);
                                         }
                                         setRatingModalOrder(null);
+                                        setSelectedStars(0);
+                                        setReviewComment('');
                                     }}
                                     style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '0.9rem', cursor: 'pointer' }}
                                 >

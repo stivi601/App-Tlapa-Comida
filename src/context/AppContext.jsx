@@ -617,6 +617,35 @@ export const AppProvider = ({ children }) => {
         setOrders(orders.map(o => o.id === orderId ? { ...o, status: ORDER_STATUS.COMPLETED } : o));
     };
 
+    const submitReview = async (orderId, rating, comment) => {
+        if (!customerUser || !customerUser.token) return false;
+
+        try {
+            const res = await fetch(`${API_URL}/api/reviews`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${customerUser.token}`
+                },
+                body: JSON.stringify({ orderId, rating, comment })
+            });
+
+            if (res.ok) {
+                const newReview = await res.json();
+                // Actualizar la orden localmente para marcarla como calificada
+                setOrders(orders.map(o => o.id === orderId ? { ...o, review: newReview, reviewId: newReview.id } : o));
+                return true;
+            } else {
+                const err = await res.json();
+                alert(err.error || "Error al calificar");
+            }
+        } catch (error) {
+            console.error("Error submitReview", error);
+        }
+        return false;
+    };
+
+
     const updateOrderStatus = (orderId, status) => {
         setOrders(orders.map(o => {
             if (o.id === orderId) {
@@ -634,13 +663,34 @@ export const AppProvider = ({ children }) => {
         setOrders(orders.map(o => o.id === orderId ? { ...o, ...data } : o));
     };
 
-    const addMenuItem = (restaurantId, newItem) => {
-        setRestaurants(restaurants.map(r => {
-            if (r.id === restaurantId) {
-                return { ...r, menu: [...(r.menu || []), newItem] };
+    const addMenuItem = async (restaurantId, newItem) => {
+        const token = restaurantUser?.token || adminUser?.token;
+        if (!token) return false;
+
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${restaurantId}/menu`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newItem)
+            });
+
+            if (res.ok) {
+                const createdItem = await res.json();
+                setRestaurants(restaurants.map(r => {
+                    if (r.id === restaurantId) {
+                        return { ...r, menu: [...(r.menu || []), createdItem] };
+                    }
+                    return r;
+                }));
+                return true;
             }
-            return r;
-        }));
+        } catch (error) {
+            console.error("Error addMenuItem", error);
+        }
+        return false;
     };
 
     const getCategories = (restaurantId) => {
@@ -650,22 +700,54 @@ export const AppProvider = ({ children }) => {
         return Array.from(cats);
     };
 
-    const removeMenuItem = (restaurantId, itemToRemove) => {
-        setRestaurants(restaurants.map(r => {
-            if (r.id === restaurantId) {
-                return { ...r, menu: r.menu.filter(i => i !== itemToRemove) };
+    const removeMenuItem = async (restaurantId, itemToRemove) => {
+        const token = restaurantUser?.token || adminUser?.token;
+        if (!token) return false;
+
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${restaurantId}/menu/${itemToRemove.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                setRestaurants(restaurants.map(r => {
+                    if (r.id === restaurantId) {
+                        return { ...r, menu: r.menu.filter(i => i.id !== itemToRemove.id) };
+                    }
+                    return r;
+                }));
+                return true;
             }
-            return r;
-        }));
+        } catch (error) {
+            console.error("Error removeMenuItem", error);
+        }
+        return false;
     };
 
-    const removeMenuCategory = (restaurantId, categoryName) => {
-        setRestaurants(restaurants.map(r => {
-            if (r.id === restaurantId) {
-                return { ...r, menu: r.menu.filter(i => i.category !== categoryName) };
+    const removeMenuCategory = async (restaurantId, categoryName) => {
+        const token = restaurantUser?.token || adminUser?.token;
+        if (!token) return false;
+
+        try {
+            const res = await fetch(`${API_URL}/api/restaurants/${restaurantId}/menu/category/${encodeURIComponent(categoryName)}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                setRestaurants(restaurants.map(r => {
+                    if (r.id === restaurantId) {
+                        return { ...r, menu: r.menu.filter(i => i.category !== categoryName) };
+                    }
+                    return r;
+                }));
+                return true;
             }
-            return r;
-        }));
+        } catch (error) {
+            console.error("Error removeMenuCategory", error);
+        }
+        return false;
     };
 
     return (
@@ -682,7 +764,7 @@ export const AppProvider = ({ children }) => {
             restaurantUser, setRestaurantUser, loginRestaurant,
             adminUser, setAdminUser,
             deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders, rateRestaurant, setDeliveryUser,
-            updateOrder, updateCustomerUser
+            updateOrder, updateCustomerUser, submitReview
         }}>
             {children}
         </AppContext.Provider>
