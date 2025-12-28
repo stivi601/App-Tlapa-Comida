@@ -680,6 +680,7 @@ export const AppProvider = ({ children }) => {
             customerAddresses, addAddress, removeAddress, updateAddress,
             systemNotifications, sendMassNotification,
             restaurantUser, setRestaurantUser, loginRestaurant,
+            adminUser, setAdminUser,
             deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders, rateRestaurant, setDeliveryUser,
             updateOrder, updateCustomerUser
         }}>
