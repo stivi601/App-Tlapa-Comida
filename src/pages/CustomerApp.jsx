@@ -358,7 +358,7 @@ export default function CustomerApp() {
                                 <h4 style={{ fontSize: '1rem', color: 'var(--primary)', marginBottom: '1.2rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
                                     {category}
                                 </h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: '1rem' }}>
                                     {items.map((item, i) => {
                                         const cartItem = cart.items.find(ci => ci.name === item.name);
                                         const qty = cartItem ? cartItem.quantity : 0;
@@ -425,11 +425,11 @@ export default function CustomerApp() {
                 <>
                     {/* Address Selection Modal */}
                     {showAddressModal && (
-                        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-                            <div className="fade-in-up" style={{ background: 'white', width: '100%', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '2rem 1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div className="modal-overlay" onClick={() => setShowAddressModal(false)}>
+                            <div className="modal-content fade-in" onClick={e => e.stopPropagation()} style={{ padding: '2rem 1.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                     <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Selecciona una dirección</h3>
-                                    <button onClick={() => setShowAddressModal(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <button onClick={() => setShowAddressModal(false)} className="btn-secondary" style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0 }}>
                                         <X size={18} />
                                     </button>
                                 </div>
@@ -534,7 +534,7 @@ export default function CustomerApp() {
                     {/* Restaurants */}
                     <section className="fade-in" style={{ padding: '0.5rem 1rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Restaurantes Populares</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: '1.5rem' }}>
                             {filteredRestaurants.map(rest => (
                                 <div
                                     key={rest.id}
@@ -901,57 +901,50 @@ export default function CustomerApp() {
             }
 
             {/* Bottom Nav */}
-            <nav style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: 'white',
-                borderTop: '1px solid #E2E8F0',
-                padding: '0.8rem 1rem',
-                display: 'flex',
-                justifyContent: 'space-around',
-                zIndex: 20
-            }}>
+            <nav className="mobile-nav" style={{ justifyContent: 'space-around', display: 'flex' }}>
                 <button
                     onClick={() => { setSelectedRestaurant(null); setActiveTab('home'); }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'home' && !selectedRestaurant ? 'var(--primary)' : '#94A3B8', background: 'none', border: 'none' }}
+                    className={`mobile-nav-item ${activeTab === 'home' && !selectedRestaurant ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none' }}
                 >
                     <Home size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '500' }}>Inicio</span>
+                    <span>Inicio</span>
                 </button>
                 <button
                     onClick={() => { setSelectedRestaurant(null); setActiveTab('cart'); }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'cart' ? 'var(--primary)' : '#94A3B8', background: 'none', border: 'none', position: 'relative' }}
+                    className={`mobile-nav-item ${activeTab === 'cart' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none', position: 'relative' }}
                 >
                     <ShoppingCart size={24} />
                     {cart.items.length > 0 && <span style={{ position: 'absolute', top: -5, right: 10, background: 'red', color: 'white', borderRadius: '50%', width: '14px', height: '14px', fontSize: '0.6rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{cart.items.length}</span>}
-                    <span style={{ fontSize: '0.7rem', fontWeight: '500' }}>Carrito</span>
+                    <span>Carrito</span>
                 </button>
                 <button
                     onClick={() => { setSelectedRestaurant(null); setActiveTab('orders'); }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'orders' ? 'var(--primary)' : '#94A3B8', background: 'none', border: 'none' }}
+                    className={`mobile-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none' }}
                 >
                     <ShoppingBag size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '500' }}>Pedidos</span>
+                    <span>Pedidos</span>
                 </button>
                 <button
                     onClick={() => { setSelectedRestaurant(null); setActiveTab('profile'); }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: activeTab === 'profile' ? 'var(--primary)' : '#94A3B8', background: 'none', border: 'none' }}
+                    className={`mobile-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                    style={{ background: 'none', border: 'none' }}
                 >
                     <User size={24} />
-                    <span style={{ fontSize: '0.7rem', fontWeight: '500' }}>Perfil</span>
+                    <span>Perfil</span>
                 </button>
             </nav>
 
             {/* Notifications Modal */}
             {
                 showNotificationsModal && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-                        <div className="fade-in-up" style={{ background: 'white', width: '100%', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '2rem 1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
+                    <div className="modal-overlay" onClick={() => setShowNotificationsModal(false)}>
+                        <div className="modal-content fade-in" onClick={e => e.stopPropagation()} style={{ padding: '2rem 1.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                 <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Notificaciones</h3>
-                                <button onClick={() => setShowNotificationsModal(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <button onClick={() => setShowNotificationsModal(false)} className="btn-secondary" style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0 }}>
                                     <X size={18} />
                                 </button>
                             </div>
@@ -978,12 +971,12 @@ export default function CustomerApp() {
             {/* Modal for Adding Address */}
             {
                 showAddAddress && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                        <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', borderRadius: '24px' }}>
+                    <div className="modal-overlay" onClick={() => { setShowAddAddress(false); setEditingAddressId(null); setNewAddr({ label: '', address: '' }); }}>
+                        <div className="modal-content fade-in" onClick={e => e.stopPropagation()} style={{ padding: '2rem', borderRadius: '24px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                 <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>{editingAddressId ? 'Editar Dirección' : 'Nueva Dirección'}</h3>
-                                <button onClick={() => { setShowAddAddress(false); setEditingAddressId(null); setNewAddr({ label: '', address: '' }); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                                    <X size={24} color="#94A3B8" />
+                                <button onClick={() => { setShowAddAddress(false); setEditingAddressId(null); setNewAddr({ label: '', address: '' }); }} className="btn-secondary" style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0 }}>
+                                    <X size={18} />
                                 </button>
                             </div>
                             <form onSubmit={(e) => {
@@ -1043,8 +1036,8 @@ export default function CustomerApp() {
             {/* Rating Modal */}
             {
                 ratingModalOrder && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                        <div className="card fade-in" style={{ width: '100%', maxWidth: '350px', padding: '2rem', borderRadius: '24px', textAlign: 'center' }}>
+                    <div className="modal-overlay" onClick={() => setRatingModalOrder(null)}>
+                        <div className="modal-content fade-in" onClick={e => e.stopPropagation()} style={{ padding: '2rem', textAlign: 'center' }}>
                             <div style={{ marginBottom: '1.5rem' }}>
                                 <div style={{ width: '60px', height: '60px', background: '#FEF3C7', borderRadius: '20px', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Star size={30} color="#D97706" fill="#D97706" />
