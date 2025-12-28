@@ -972,7 +972,7 @@ export default function CustomerApp() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Ubicación</label>
-                                    <ErrorBoundary fallback={
+                                    {/* <ErrorBoundary fallback={
                                         <div style={{ padding: '1rem', background: '#F1F5F9', borderRadius: '8px', textAlign: 'center', fontSize: '0.9rem' }}>
                                             Mapa no disponible. Por favor escribe tu dirección abajo.
                                         </div>
@@ -982,8 +982,11 @@ export default function CustomerApp() {
                                                 setNewAddr(prev => ({ ...prev, lat, lng }));
                                             }}
                                         />
-                                    </ErrorBoundary>
-                                    <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '5px' }}>Mueve el pin a tu ubicación exacta.</p>
+                                    </ErrorBoundary> */}
+                                    <div style={{ padding: '10px', background: '#FEF3C7', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '10px' }}>
+                                        ⚠️ El mapa está temporalmente desactivado para depuración. Por favor escribe tu dirección abajo.
+                                    </div>
+                                    <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '5px' }}>Próximamente: Geolocalización precisa.</p>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Dirección Escrita / Referencias</label>
