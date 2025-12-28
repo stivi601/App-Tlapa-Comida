@@ -77,7 +77,7 @@ const createRestaurant = async (req, res) => {
                 username,
                 password: hashedPassword,
                 time: time || '30-45 min',
-                deliveryFee: parseFloat(deliveryFee) || 0,
+                deliveryFee: Number(deliveryFee) || 0,
                 categories: JSON.stringify(categories || []),
                 image: image || null,
                 rating: 5.0
@@ -220,6 +220,11 @@ const updateRestaurant = async (req, res) => {
         // Si viene categories como array, convertir a string para DB
         if (data.categories && Array.isArray(data.categories)) {
             data.categories = JSON.stringify(data.categories);
+        }
+
+        // Asegurar que deliveryFee sea número si viene
+        if (data.hasOwnProperty('deliveryFee')) {
+            data.deliveryFee = Number(data.deliveryFee) || 0;
         }
 
         const updated = await prisma.restaurant.update({
