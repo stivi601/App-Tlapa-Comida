@@ -152,7 +152,7 @@ model DeliveryRider {
   username          String     @unique
   password          String     // Hash bcrypt
   name              String
-  phone             String
+  phone             String?
   rfc               String?
   image             String?
   totalDeliveries   Int        @default(0)
