@@ -121,12 +121,14 @@ export default function AdminApp() {
     };
 
     const toggleRestCategory = (cat) => {
-        const current = restFormData.categories || [];
-        if (current.includes(cat)) {
-            setRestFormData({ ...restFormData, categories: current.filter(c => c !== cat) });
-        } else {
-            setRestFormData({ ...restFormData, categories: [...current, cat] });
-        }
+        setRestFormData(prev => {
+            const current = prev.categories || [];
+            if (current.includes(cat)) {
+                return { ...prev, categories: current.filter(c => c !== cat) };
+            } else {
+                return { ...prev, categories: [...current, cat] };
+            }
+        });
     };
 
     const handleSendNotif = (e) => {
@@ -147,6 +149,28 @@ export default function AdminApp() {
         fetchData();
         setShowRiderForm(false);
         setRiderFormData({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurantId: '', image: '' });
+    };
+
+    const handleSaveRestaurantInternal = async (e) => {
+        e.preventDefault();
+
+        // Asegurar que los datos numéricos sean correctos
+        const finalData = {
+            ...restFormData,
+            deliveryFee: parseFloat(restFormData.deliveryFee) || 0
+        };
+
+        if (finalData.id) {
+            await updateRestaurant(finalData.id, finalData, adminUser.token);
+        } else {
+            await addRestaurant(finalData, adminUser.token);
+        }
+        fetchData();
+        setShowRestForm(false);
+        setRestFormData({
+            id: null, name: '', username: '', password: '',
+            categories: [], image: '', time: '15-25 min', deliveryFee: 20
+        });
     };
 
     const handleEditRider = (rider) => {
@@ -500,7 +524,7 @@ export default function AdminApp() {
                         {showRestForm && (
                             <div className="card fade-in" style={{ marginBottom: '2rem', border: '1px solid var(--primary)', maxWidth: '800px' }}>
                                 <h3 style={{ marginBottom: '1.5rem' }}>{restFormData.id ? 'Editar Restaurante' : 'Nuevo Restaurante'}</h3>
-                                <form onSubmit={handleSaveRestaurant} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <form onSubmit={handleSaveRestaurantInternal} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1rem' }}>
                                             {/* Image Upload Area */}
@@ -527,7 +551,7 @@ export default function AdminApp() {
                                                             if (file) {
                                                                 const reader = new FileReader();
                                                                 reader.onloadend = () => {
-                                                                    setRestFormData({ ...restFormData, image: reader.result });
+                                                                    setRestFormData(prev => ({ ...prev, image: reader.result }));
                                                                 };
                                                                 reader.readAsDataURL(file);
                                                             }
