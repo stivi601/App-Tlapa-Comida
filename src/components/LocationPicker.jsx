@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import usePlacesAutocomplete, {
     getGeocode,
     getLatLng,
@@ -23,9 +23,14 @@ const options = {
 
 export default function LocationPicker({ onLocationSelect, initialLocation }) {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    const { isLoaded, loadError } = useLoadScript({
-        googleMapsApiKey: apiKey || "INVALID_KEY", // Evitar crash si es undefined
-        libraries,
+
+    // Memoize libraries array to prevent unnecessary re-renders/initializations
+    const libs = useMemo(() => libraries, []);
+
+    const { isLoaded, loadError } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: apiKey || "",
+        libraries: libs,
     });
 
     const [center, setCenter] = useState(initialLocation || defaultCenter);
