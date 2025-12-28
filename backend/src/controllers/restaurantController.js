@@ -232,6 +232,7 @@ module.exports = {
     getAllRestaurants,
     getRestaurantById,
     createRestaurant,
+    addMenuItem,
     deleteMenuItem,
     deleteMenuCategory,
     updateRestaurant,
