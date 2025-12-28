@@ -141,10 +141,6 @@ const createRider = async (req, res) => {
                 password: hashedPassword,
                 phone,
                 rfc,
-                // Email y address se agregaron al esquema pero si la DB no se migra fallará
-                // Por seguridad los comentamos o manejamos si existen
-                // email,
-                // address,
                 assignedRestaurantId,
                 image,
                 totalDeliveries: 0,
@@ -166,8 +162,15 @@ const createRider = async (req, res) => {
 const updateRider = async (req, res) => {
     try {
         const { id } = req.params;
-        const data = req.body;
-        delete data.id; // Evitar update id
+        const body = req.body;
+
+        // Filtrar solo campos permitidos en el esquema actual
+        const data = {};
+        const allowed = ['name', 'username', 'password', 'phone', 'rfc', 'image', 'assignedRestaurantId', 'isOnline', 'totalDeliveries'];
+
+        allowed.forEach(field => {
+            if (body[field] !== undefined) data[field] = body[field];
+        });
 
         if (data.password) {
             data.password = await bcrypt.hash(data.password, 10);
