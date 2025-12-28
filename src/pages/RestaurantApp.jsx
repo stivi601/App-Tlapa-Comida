@@ -3,10 +3,9 @@ import { useApp } from '../context/AppContext';
 import { ChefHat, CheckCircle, Clock, ArrowRight, Plus, Utensils, X, Image, ChevronDown, ChevronUp, Camera, Trash2, Lock } from 'lucide-react';
 
 export default function RestaurantApp() {
-    const { orders, updateOrderStatus, restaurants, addMenuItem, removeMenuItem, removeMenuCategory, loginRestaurant } = useApp();
+    const { orders, updateOrderStatus, restaurants, addMenuItem, removeMenuItem, removeMenuCategory, loginRestaurant, restaurantUser, setRestaurantUser } = useApp();
 
     // Auth State
-    const [user, setUser] = useState(null);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loginError, setLoginError] = useState('');
@@ -18,18 +17,17 @@ export default function RestaurantApp() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [expandedCategory, setExpandedCategory] = useState(null);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        const restaurant = loginRestaurant(username, password);
-        if (restaurant) {
-            setUser(restaurant);
+        const success = await loginRestaurant(username, password);
+        if (success) {
             setLoginError('');
         } else {
             setLoginError('Credenciales inválidas');
         }
     };
 
-    if (!user) {
+    if (!restaurantUser) {
         return (
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '1rem' }}>
                 <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
@@ -79,8 +77,8 @@ export default function RestaurantApp() {
         );
     }
 
-    const myRestaurantId = user.id;
-    const myRestaurant = restaurants.find(r => r.id === myRestaurantId) || user; // Ensure we get latest state
+    const myRestaurantId = restaurantUser.id;
+    const myRestaurant = restaurants.find(r => r.id === myRestaurantId) || restaurantUser; // Ensure we get latest state
     const myOrders = orders.filter(o => o.restaurant === myRestaurant.name);
 
     const handleAddItem = (e) => {

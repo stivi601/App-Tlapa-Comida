@@ -87,6 +87,13 @@ export default function LocationPicker({ onLocationSelect, initialLocation }) {
                     onLoad={onMapLoad}
                     onDragEnd={handleDragEnd}
                     onCenterChanged={handleCenterChanged} // Mantiene track del centro
+                    onClick={(e) => {
+                        const lat = e.latLng.lat();
+                        const lng = e.latLng.lng();
+                        setCenter({ lat, lng });
+                        setMarkerPos({ lat, lng });
+                        onLocationSelect({ lat, lng });
+                    }}
                 >
                     {/* Marker fijo al centro visualmente o lógico */}
                     <Marker position={markerPos} />

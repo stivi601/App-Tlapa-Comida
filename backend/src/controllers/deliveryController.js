@@ -90,7 +90,7 @@ const getRiderStats = async (req, res) => {
         const riderId = req.user.userId;
         const rider = await prisma.deliveryRider.findUnique({
             where: { id: riderId },
-            select: { totalDeliveries: true, rating: true } // Asumiendo que agregaremos rating al schema después
+            select: { totalDeliveries: true }
         });
 
         // Calcular ganancias del día (mockup logic)

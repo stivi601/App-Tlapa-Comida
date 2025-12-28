@@ -30,8 +30,18 @@ export const AppProvider = ({ children }) => {
     const [errorRestaurants, setErrorRestaurants] = useState(null);
 
     // Usuarios y Autenticación
-    const [customerUser, setCustomerUser] = useState(null);
-    const [deliveryUser, setDeliveryUser] = useState(null);
+    const [customerUser, setCustomerUser] = useState(JSON.parse(localStorage.getItem('customerUser')) || null);
+    const [adminUser, setAdminUser] = useState(JSON.parse(localStorage.getItem('adminUser')) || null);
+    const [deliveryUser, setDeliveryUser] = useState(JSON.parse(localStorage.getItem('deliveryUser')) || null);
+    const [restaurantUser, setRestaurantUser] = useState(JSON.parse(localStorage.getItem('restaurantUser')) || null);
+
+    // Almacenar sesiones en localStorage
+    useEffect(() => {
+        localStorage.setItem('customerUser', JSON.stringify(customerUser));
+        localStorage.setItem('adminUser', JSON.stringify(adminUser));
+        localStorage.setItem('deliveryUser', JSON.stringify(deliveryUser));
+        localStorage.setItem('restaurantUser', JSON.stringify(restaurantUser));
+    }, [customerUser, adminUser, deliveryUser, restaurantUser]);
 
     // Pedidos y Carrito
     const [orders, setOrders] = useState([]);
@@ -86,10 +96,11 @@ export const AppProvider = ({ children }) => {
     // Cargar pedidos del usuario
     useEffect(() => {
         const fetchMyOrders = async () => {
-            if (!customerUser?.token) return;
+            const token = customerUser?.token || restaurantUser?.token;
+            if (!token) return;
             try {
                 const res = await fetch(`${API_URL}/api/orders/my-orders`, {
-                    headers: { 'Authorization': `Bearer ${customerUser.token}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -108,7 +119,26 @@ export const AppProvider = ({ children }) => {
             } catch (e) { console.error(e); }
         };
         fetchMyOrders();
-    }, [customerUser]);
+    }, [customerUser, restaurantUser]);
+
+    // Cargar notificaciones del sistema
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/notifications`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSystemNotifications(data.map(n => ({
+                        ...n,
+                        date: new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    })));
+                }
+            } catch (error) { console.error(error); }
+        };
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000); // Cada 30 seg
+        return () => clearInterval(interval);
+    }, []);
 
     // Carrito de compras del cliente actual
 
@@ -302,26 +332,46 @@ export const AppProvider = ({ children }) => {
         setCustomerAddresses(customerAddresses.map(a => a.id === id ? { ...a, ...data } : a));
     };
 
-    const sendMassNotification = (notif) => {
-        const newNotif = {
-            id: Date.now(),
-            ...notif,
-            date: 'Justo ahora'
-        };
-        setSystemNotifications([newNotif, ...systemNotifications]);
+    const sendMassNotification = async (notif) => {
+        try {
+            const res = await fetch(`${API_URL}/api/notifications`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminUser?.token}`
+                },
+                body: JSON.stringify(notif)
+            });
+            if (res.ok) {
+                const newNotif = await res.json();
+                setSystemNotifications(prev => [newNotif, ...prev]);
+            }
+        } catch (error) {
+            console.error("Error sending notification", error);
+        }
     };
 
     // ============================================
     // FUNCIONES DE REPARTIDORES
     // ============================================
 
-    const loginDelivery = (username, password) => {
-        const rider = deliveryRiders.find(r => r.username === username && r.password === password);
-        if (rider) {
-            setDeliveryUser(rider);
-            return true;
+    const loginDelivery = async (username, password) => {
+        try {
+            const res = await fetch(`${API_URL}/api/delivery/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error);
+
+            setDeliveryUser({ ...result.rider, token: result.token });
+            return result.rider;
+        } catch (error) {
+            console.error(error);
+            return null;
         }
-        return false;
     };
 
     const addDeliveryRider = async (riderData, token) => {
@@ -403,8 +453,23 @@ export const AppProvider = ({ children }) => {
     // ============================================
     // FUNCIONES DE AUTENTICACIÓN
     // ============================================
-    const loginRestaurant = (username, password) => {
-        return restaurants.find(r => r.username === username && r.password === password) || null;
+    const loginRestaurant = async (username, password) => {
+        try {
+            const res = await fetch(`${API_URL}/api/auth/restaurant/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error);
+
+            setRestaurantUser({ ...result.restaurant, token: result.token });
+            return result.restaurant;
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
     };
 
 
@@ -607,6 +672,7 @@ export const AppProvider = ({ children }) => {
             customerUser, loginCustomer, logoutCustomer, registerCustomer,
             customerAddresses, addAddress, removeAddress, updateAddress,
             systemNotifications, sendMassNotification,
+            restaurantUser, setRestaurantUser, loginRestaurant,
             deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders, rateRestaurant, setDeliveryUser,
             updateOrder, updateCustomerUser
         }}>
