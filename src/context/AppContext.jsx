@@ -121,6 +121,13 @@ export const AppProvider = ({ children }) => {
         fetchMyOrders();
     }, [customerUser, restaurantUser]);
 
+    // Cargar direcciones del cliente al iniciar sesión
+    useEffect(() => {
+        if (customerUser?.token) {
+            loadAddresses(customerUser.token);
+        }
+    }, [customerUser?.token]);
+
     // Cargar notificaciones del sistema
     useEffect(() => {
         const fetchNotifications = async () => {

@@ -141,8 +141,10 @@ const createRider = async (req, res) => {
                 password: hashedPassword,
                 phone,
                 rfc,
-                email,
-                address,
+                // Email y address se agregaron al esquema pero si la DB no se migra fallará
+                // Por seguridad los comentamos o manejamos si existen
+                // email,
+                // address,
                 assignedRestaurantId,
                 image,
                 totalDeliveries: 0,

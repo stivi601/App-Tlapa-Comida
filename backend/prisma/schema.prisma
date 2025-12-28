@@ -152,11 +152,11 @@ model DeliveryRider {
   username          String     @unique
   password          String     // Hash bcrypt
   name              String
-  phone             String
-  rfc               String?
   image             String?
   totalDeliveries   Int        @default(0)
   isOnline          Boolean    @default(false)
+  email             String?
+  address           String?
   assignedRestaurantId String?
   assignedRestaurant   Restaurant? @relation(fields: [assignedRestaurantId], references: [id])
   createdAt         DateTime   @default(now())
