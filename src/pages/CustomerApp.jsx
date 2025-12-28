@@ -119,6 +119,10 @@ export default function CustomerApp() {
         }
     };
 
+    const handleDecrementItem = (item) => {
+        decrementFromCart(item.id || item.name);
+    };
+
     // Filter logic
     const filteredRestaurants = selectedCategory === 'Todo'
         ? restaurants
@@ -377,7 +381,7 @@ export default function CustomerApp() {
                                                     {qty > 0 && (
                                                         <>
                                                             <button
-                                                                onClick={() => decrementFromCart(item.name)}
+                                                                onClick={() => handleDecrementItem(item)}
                                                                 style={{
                                                                     background: 'white', color: 'var(--primary)', border: '1px solid var(--primary)',
                                                                     width: '32px', height: '32px', borderRadius: '50%',
@@ -391,7 +395,7 @@ export default function CustomerApp() {
                                                         </>
                                                     )}
                                                     <button
-                                                        onClick={() => handleAddItem(item.name, item.price, selectedRestaurant.name)}
+                                                        onClick={() => handleAddItem(item, item.price, selectedRestaurant.name)}
                                                         style={{
                                                             background: 'var(--primary)', color: 'white', border: 'none',
                                                             width: qty > 0 ? '32px' : '44px', height: qty > 0 ? '32px' : '44px', borderRadius: '50%',
@@ -591,14 +595,14 @@ export default function CustomerApp() {
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: '#F8FAFC', padding: '4px', borderRadius: '30px' }}>
                                             <button
-                                                onClick={() => decrementFromCart(item.name)}
+                                                onClick={() => handleDecrementItem(item)}
                                                 style={{ background: 'white', border: '1px solid #E2E8F0', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             >
                                                 <Minus size={14} />
                                             </button>
                                             <span style={{ fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
                                             <button
-                                                onClick={() => handleAddItem(item.name, item.price, cart.restaurantName)}
+                                                onClick={() => handleAddItem(item, item.price, cart.restaurantName)}
                                                 style={{ background: 'var(--primary)', color: 'white', border: 'none', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             >
                                                 <Plus size={14} />

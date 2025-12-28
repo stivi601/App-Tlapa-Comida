@@ -446,9 +446,8 @@ export const AppProvider = ({ children }) => {
         return true;
     };
 
-    const decrementFromCart = (itemName) => {
-        // FIXME: Ajustar a itemID cuando refactoricemos todo, usando name por ahora compatible
-        const existingItemIndex = cart.items.findIndex(i => i.name === itemName);
+    const decrementFromCart = (itemIdentifier) => {
+        const existingItemIndex = cart.items.findIndex(i => i.id === itemIdentifier || i.name === itemIdentifier);
         if (existingItemIndex === -1) return;
 
         let newItems = [];
@@ -482,7 +481,7 @@ export const AppProvider = ({ children }) => {
 
     const clearCart = () => setCart({ restaurantId: null, restaurantName: null, items: [], total: 0 });
 
-    const placeOrder = async () => {
+    const placeOrder = async (addressData = null) => {
         if (cart.items.length === 0) return;
         if (!customerUser || !customerUser.token) {
             alert("Debes iniciar sesión para ordenar");
@@ -493,6 +492,9 @@ export const AppProvider = ({ children }) => {
             const payload = {
                 restaurantId: cart.restaurantId,
                 total: cart.total,
+                deliveryAddress: addressData?.address || "Sin dirección",
+                deliveryLat: addressData?.lat || null,
+                deliveryLng: addressData?.lng || null,
                 items: cart.items.map(i => ({
                     id: i.id,
                     quantity: i.quantity,
@@ -526,7 +528,7 @@ export const AppProvider = ({ children }) => {
                 items: cart.items.map(i => `${i.quantity}x ${i.name}`).join(', ')
             };
 
-            setOrders([formattedOrder, ...orders]);
+            setOrders(prev => [formattedOrder, ...prev]);
             clearCart();
             alert("¡Pedido realizado con éxito!");
         } catch (error) {
