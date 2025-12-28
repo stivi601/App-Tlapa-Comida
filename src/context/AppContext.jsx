@@ -176,9 +176,13 @@ export const AppProvider = ({ children }) => {
                 const newRest = await res.json();
                 setRestaurants(prev => [...prev, newRest]);
                 return true;
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.error}${err.detail ? ` (${err.detail})` : ''}`);
             }
         } catch (error) {
             console.error("Error adding restaurant", error);
+            alert("Error de conexión al agregar restaurante");
         }
         return false;
     };

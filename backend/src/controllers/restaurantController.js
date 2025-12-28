@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const bcrypt = require('bcryptjs');
 
 /**
  * Obtener todos los restaurantes
@@ -59,31 +60,49 @@ const getRestaurantById = async (req, res) => {
  */
 const createRestaurant = async (req, res) => {
     try {
-        const { name, username, password, description, time, deliveryFee, categories, image } = req.body;
+        console.log('📥 Petición para crear restaurante:', req.body);
+        const { name, username, password, time, deliveryFee, categories, image } = req.body;
 
-        // Aquí deberíamos hashear el password si se usará para login de panel de restaurante
-        // Por simplificación en este paso, lo guardamos directo o usamos un hash placeholder
+        if (!name || !username || !password) {
+            return res.status(400).json({ error: 'Nombre, usuario y contraseña son obligatorios' });
+        }
 
+        // 1. Hashear password real
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 2. Crear en DB
         const newRestaurant = await prisma.restaurant.create({
             data: {
                 name,
                 username,
-                password: 'hashed_password_placeholder', // TODO: Implementar hash real
+                password: hashedPassword,
                 time: time || '30-45 min',
                 deliveryFee: parseFloat(deliveryFee) || 0,
                 categories: JSON.stringify(categories || []),
-                image,
+                image: image || null,
                 rating: 5.0
             }
         });
 
-        // Parsear categories para la respuesta
-        newRestaurant.categories = JSON.parse(newRestaurant.categories);
+        console.log('✅ Restaurante creado exitosamente:', newRestaurant.id);
 
-        res.status(201).json(newRestaurant);
+        // Parsear categories para la respuesta
+        const responseData = { ...newRestaurant };
+        responseData.categories = JSON.parse(responseData.categories);
+
+        res.status(201).json(responseData);
     } catch (error) {
-        console.error('Error al crear restaurante:', error);
-        res.status(500).json({ error: 'Error al crear el restaurante' });
+        console.error('❌ Error fatal al crear restaurante:', error);
+
+        // Manejar error de duplicado (username único)
+        if (error.code === 'P2002') {
+            return res.status(400).json({ error: 'El nombre de usuario ya está en uso' });
+        }
+
+        res.status(500).json({
+            error: 'Error interno al crear el restaurante',
+            detail: error.message
+        });
     }
 };
 
@@ -186,8 +205,17 @@ const updateRestaurant = async (req, res) => {
         const { id } = req.params;
         const data = req.body;
 
+        console.log(`📝 Actualizando restaurante ${id}:`, data);
+
         // Evitar actualizar ID
         delete data.id;
+
+        // Si viene password, hashearlo
+        if (data.password && data.password.trim() !== '') {
+            data.password = await bcrypt.hash(data.password, 10);
+        } else {
+            delete data.password; // No cambiar si está vacío
+        }
 
         // Si viene categories como array, convertir a string para DB
         if (data.categories && Array.isArray(data.categories)) {
@@ -200,14 +228,18 @@ const updateRestaurant = async (req, res) => {
         });
 
         // Parsear categories para la respuesta
-        if (updated.categories) {
-            updated.categories = JSON.parse(updated.categories);
+        const responseData = { ...updated };
+        if (responseData.categories) {
+            responseData.categories = JSON.parse(responseData.categories);
         }
 
-        res.json(updated);
+        res.json(responseData);
     } catch (error) {
-        console.error('Error al actualizar restaurante:', error);
-        res.status(500).json({ error: 'Error al actualizar restaurante' });
+        console.error('❌ Error al actualizar restaurante:', error);
+        res.status(500).json({
+            error: 'Error al actualizar restaurante',
+            detail: error.message
+        });
     }
 };
 

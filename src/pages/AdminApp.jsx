@@ -25,7 +25,10 @@ export default function AdminApp() {
 
     // Restaurant Form State
     const [showRestForm, setShowRestForm] = useState(false);
-    const [restFormData, setRestFormData] = useState({ id: null, name: '', username: '', password: '', categories: [] });
+    const [restFormData, setRestFormData] = useState({
+        id: null, name: '', username: '', password: '',
+        categories: [], image: '', time: '15-25 min', deliveryFee: 20
+    });
 
     // Rider Form State
     const [showRiderForm, setShowRiderForm] = useState(false);
@@ -106,7 +109,10 @@ export default function AdminApp() {
         }
         fetchData();
         setShowRestForm(false);
-        setRestFormData({ id: null, name: '', username: '', password: '', categories: [] });
+        setRestFormData({
+            id: null, name: '', username: '', password: '',
+            categories: [], image: '', time: '15-25 min', deliveryFee: 20
+        });
     };
 
     const handleEditRestaurant = (r) => {
@@ -480,7 +486,10 @@ export default function AdminApp() {
                                     />
                                 </div>
                                 <button className="btn btn-primary" onClick={() => {
-                                    setRestFormData({ id: null, name: '', username: '', password: '', categories: [] });
+                                    setRestFormData({
+                                        id: null, name: '', username: '', password: '',
+                                        categories: [], image: '', time: '15-25 min', deliveryFee: 20
+                                    });
                                     setShowRestForm(true);
                                 }}>
                                     <Plus size={18} /> Agregar Restaurante
@@ -516,8 +525,11 @@ export default function AdminApp() {
                                                         onChange={(e) => {
                                                             const file = e.target.files[0];
                                                             if (file) {
-                                                                const url = URL.createObjectURL(file);
-                                                                setRestFormData({ ...restFormData, image: url });
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => {
+                                                                    setRestFormData({ ...restFormData, image: reader.result });
+                                                                };
+                                                                reader.readAsDataURL(file);
                                                             }
                                                         }}
                                                     />
@@ -548,6 +560,26 @@ export default function AdminApp() {
                                                 type="text" className="input" style={{ width: '100%' }}
                                                 value={restFormData.password}
                                                 onChange={e => setRestFormData({ ...restFormData, password: e.target.value })}
+                                                required={!restFormData.id}
+                                                placeholder={restFormData.id ? "Dejar en blanco para no cambiar" : ""}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Tiempo de Entrega</label>
+                                            <input
+                                                type="text" className="input" style={{ width: '100%' }}
+                                                value={restFormData.time}
+                                                onChange={e => setRestFormData({ ...restFormData, time: e.target.value })}
+                                                placeholder="Ej: 20-30 min"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Tarifa de Envío ($)</label>
+                                            <input
+                                                type="number" className="input" style={{ width: '100%' }}
+                                                value={restFormData.deliveryFee}
+                                                onChange={e => setRestFormData({ ...restFormData, deliveryFee: e.target.value })}
                                                 required
                                             />
                                         </div>
