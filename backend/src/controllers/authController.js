@@ -179,17 +179,21 @@ const adminLogin = async (req, res) => {
             });
         }
 
-        // Buscar admin por username con rol ADMIN
+        // Buscar admin por username o email con rol ADMIN
         const admin = await prisma.user.findFirst({
             where: {
-                username,
+                OR: [
+                    { username },
+                    { email: username } // En caso de que intenten usar el email en el campo de usuario
+                ],
                 role: 'ADMIN'
             }
         });
 
         if (!admin) {
+            console.warn(`Admin login failed: User ${username} not found with ADMIN role`);
             return res.status(401).json({
-                error: 'Credenciales inválidas'
+                error: 'Usuario administrador no encontrado'
             });
         }
 
@@ -197,8 +201,9 @@ const adminLogin = async (req, res) => {
         const isValidPassword = await bcrypt.compare(password, admin.password);
 
         if (!isValidPassword) {
+            console.warn(`Admin login failed: Incorrect password for user ${username}`);
             return res.status(401).json({
-                error: 'Credenciales inválidas'
+                error: 'Contraseña de administrador incorrecta'
             });
         }
 
