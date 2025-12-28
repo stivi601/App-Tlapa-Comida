@@ -53,12 +53,29 @@ app.use('/api/reviews', require('./src/routes/reviews'));
 
 
 // Iniciar servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`\n✅ Servidor corriendo en: http://localhost:${PORT}`);
-    console.log(`📡 Esperando peticiones...`);
-    console.log(`🔐 Auth: /api/auth`);
-    console.log(`🍔 Restaurantes: /api/restaurants`);
-    console.log(`📦 Pedidos: /api/orders`);
-    console.log(`🛵 Repartidores: /api/delivery`);
-    console.log(`📊 Admin: /api/admin\n`);
+    console.log(`📡 Entorno: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️ Database URL configurada: ${process.env.DATABASE_URL ? 'SÍ' : 'NO'}`);
+    console.log(`🔐 JWT Secret configurado: ${process.env.JWT_SECRET ? 'SÍ' : 'NO'}`);
+    console.log(`🚀 Rutas activas:`);
+    console.log(`   🍔 /api/restaurants`);
+    console.log(`   📦 /api/orders\n`);
+});
+
+// Manejador de errores global para capturar fallos inesperados
+app.use((err, req, res, next) => {
+    console.error('🔥 ERROR GLOBAL CAPTURADO:');
+    console.error('Mensaje:', err.message);
+    console.error('Stack:', err.stack);
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(500).json({
+        error: 'Error interno del servidor',
+        detail: err.message,
+        code: err.code || 'UNKNOWN_ERROR'
+    });
 });

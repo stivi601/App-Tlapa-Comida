@@ -60,7 +60,10 @@ const getRestaurantById = async (req, res) => {
  */
 const createRestaurant = async (req, res) => {
     try {
-        console.log('📥 Petición para crear restaurante:', req.body);
+        console.log('📥 Petición para crear restaurante:', {
+            ...req.body,
+            image: req.body.image ? `(Base64 string length: ${req.body.image.length})` : 'No image'
+        });
         const { name, username, password, time, deliveryFee, categories, image } = req.body;
 
         if (!name || !username || !password) {

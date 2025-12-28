@@ -177,12 +177,18 @@ export const AppProvider = ({ children }) => {
                 setRestaurants(prev => [...prev, newRest]);
                 return true;
             } else {
-                const err = await res.json();
-                alert(`Error: ${err.error}${err.detail ? ` (${err.detail})` : ''}`);
+                const text = await res.text();
+                try {
+                    const err = JSON.parse(text);
+                    alert(`Error: ${err.error}${err.detail ? ` (${err.detail})` : ''}`);
+                } catch (e) {
+                    console.error("No se pudo parsear el error como JSON:", text);
+                    alert(`Error del servidor (500). Por favor revisa los logs de Render.`);
+                }
             }
         } catch (error) {
-            console.error("Error adding restaurant", error);
-            alert("Error de conexión al agregar restaurante");
+            console.error("Error fatal en addRestaurant:", error);
+            alert("Error de conexión o de red al agregar restaurante");
         }
         return false;
     };
