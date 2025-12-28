@@ -5,38 +5,13 @@ import AdminLogin from '../components/AdminLogin';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const {
-    restaurants, orders,
-    restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
-    addRestaurant, updateRestaurant, deleteRestaurant,
-    sendMassNotification,
-    deliveryRiders, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders } = useApp();
-
-// ... (rest of code)
-
-// En useEffect fetchData:
-// Fetch Users
-const usersRes = await fetch(`${API_URL}/api/admin/users`, {
-    headers: { 'Authorization': `Bearer ${adminUser.token}` }
-});
-if (usersRes.ok) {
-    const usersData = await usersRes.json();
-    setUsers(usersData);
-}
-
-// Load Riders
-loadDeliveryRiders(adminUser.token);
-
-// ...
-const handleSaveRestaurant = async (e) => {
-    e.preventDefault();
-    if (restFormData.id) {
-        await updateRestaurant(restFormData.id, restFormData, adminUser.token);
-    } else {
-        await addRestaurant(restFormData, adminUser.token);
-    }
-    setShowRestForm(false);
-    // ...
+export default function AdminApp() {
+    const {
+        restaurants, orders,
+        restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
+        addRestaurant, updateRestaurant, deleteRestaurant,
+        sendMassNotification,
+        deliveryRiders, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders } = useApp();
 
     // Auth State
     const [adminUser, setAdminUser] = useState(null);
@@ -54,7 +29,7 @@ const handleSaveRestaurant = async (e) => {
 
     // Rider Form State
     const [showRiderForm, setShowRiderForm] = useState(false);
-    const [riderFormData, setRiderFormData] = useState({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '' });
+    const [riderFormData, setRiderFormData] = useState({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '', image: '' });
 
     // Search States
     const [searchRest, setSearchRest] = useState('');
@@ -794,5 +769,6 @@ const handleSaveRestaurant = async (e) => {
         </div>
     );
 }
+
 
 export default AdminApp;
