@@ -29,6 +29,7 @@ export default function CustomerApp() {
     const [showAddAddress, setShowAddAddress] = useState(false);
     const [newAddr, setNewAddr] = useState({ label: '', address: '' });
     const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [editingAddressId, setEditingAddressId] = useState(null);
 
     // Seleccionar automáticamente la primera dirección al cargar
     useEffect(() => {
@@ -770,7 +771,11 @@ export default function CustomerApp() {
                                 ))}
                             </div>
                             <button
-                                onClick={() => setShowAddAddress(true)}
+                                onClick={() => {
+                                    setEditingAddressId(null);
+                                    setNewAddr({ label: '', address: '' });
+                                    setShowAddAddress(true);
+                                }}
                                 style={{ marginTop: '1rem', color: 'var(--primary)', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500' }}
                             >
                                 <Plus size={18} /> Agregar Dirección
