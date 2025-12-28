@@ -769,6 +769,3 @@ export default function AdminApp() {
         </div>
     );
 }
-
-
-export default AdminApp;
