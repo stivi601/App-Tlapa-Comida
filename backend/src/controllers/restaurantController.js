@@ -77,6 +77,9 @@ const createRestaurant = async (req, res) => {
             }
         });
 
+        // Parsear categories para la respuesta
+        newRestaurant.categories = JSON.parse(newRestaurant.categories);
+
         res.status(201).json(newRestaurant);
     } catch (error) {
         console.error('Error al crear restaurante:', error);
@@ -133,6 +136,11 @@ const updateRestaurant = async (req, res) => {
             where: { id },
             data
         });
+
+        // Parsear categories para la respuesta
+        if (updated.categories) {
+            updated.categories = JSON.parse(updated.categories);
+        }
 
         res.json(updated);
     } catch (error) {

@@ -113,6 +113,7 @@ const getRiderStats = async (req, res) => {
 const getAllRiders = async (req, res) => {
     try {
         const riders = await prisma.deliveryRider.findMany({
+            include: { assignedRestaurant: true },
             orderBy: { name: 'asc' }
         });
         res.json(riders);
@@ -128,7 +129,7 @@ const getAllRiders = async (req, res) => {
  */
 const createRider = async (req, res) => {
     try {
-        const { name, username, password, phone, rfc, email, address, assignedRestaurant } = req.body;
+        const { name, username, password, phone, rfc, email, address, assignedRestaurantId, image } = req.body;
 
         // Hashear password
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -142,7 +143,8 @@ const createRider = async (req, res) => {
                 rfc,
                 email,
                 address,
-                assignedRestaurant,
+                assignedRestaurantId,
+                image,
                 totalDeliveries: 0,
                 isOnline: false
             }

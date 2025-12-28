@@ -29,7 +29,7 @@ export default function AdminApp() {
 
     // Rider Form State
     const [showRiderForm, setShowRiderForm] = useState(false);
-    const [riderFormData, setRiderFormData] = useState({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '', image: '' });
+    const [riderFormData, setRiderFormData] = useState({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurantId: '', image: '' });
 
     // Search States
     const [searchRest, setSearchRest] = useState('');
@@ -70,37 +70,39 @@ export default function AdminApp() {
         }
     }, []);
 
-    useEffect(() => {
+    const fetchData = async () => {
         if (!adminUser) return;
-
-        const fetchData = async () => {
-            try {
-                // Fetch Stats
-                const statsRes = await fetch(`${API_URL}/api/admin/stats`, {
-                    headers: { 'Authorization': `Bearer ${adminUser.token}` }
-                });
-                if (statsRes.ok) {
-                    const data = await statsRes.json();
-                    setStats(data);
-                }
-
-                // Fetch Users
-                const usersRes = await fetch(`${API_URL}/api/admin/users`, {
-                    headers: { 'Authorization': `Bearer ${adminUser.token}` }
-                });
-                if (usersRes.ok) {
-                    const usersData = await usersRes.json();
-                    setUsers(usersData);
-                }
-
-                // Load Delivery Riders
-                loadDeliveryRiders(adminUser.token);
-
-            } catch (error) {
-                console.error("Error loading admin data", error);
+        try {
+            // Fetch Stats
+            const statsRes = await fetch(`${API_URL}/api/admin/stats`, {
+                headers: { 'Authorization': `Bearer ${adminUser.token}` }
+            });
+            if (statsRes.ok) {
+                const data = await statsRes.json();
+                setStats(data);
             }
-        };
-        fetchData();
+
+            // Fetch Users
+            const usersRes = await fetch(`${API_URL}/api/admin/users`, {
+                headers: { 'Authorization': `Bearer ${adminUser.token}` }
+            });
+            if (usersRes.ok) {
+                const usersData = await usersRes.json();
+                setUsers(usersData);
+            }
+
+            // Load Delivery Riders
+            loadDeliveryRiders(adminUser.token);
+
+        } catch (error) {
+            console.error("Error loading admin data", error);
+        }
+    };
+
+    useEffect(() => {
+        if (adminUser) {
+            fetchData();
+        }
     }, [adminUser]);
 
     const handleLogout = () => {
@@ -122,6 +124,7 @@ export default function AdminApp() {
         } else {
             await addRestaurant(restFormData, adminUser.token);
         }
+        fetchData();
         setShowRestForm(false);
         setRestFormData({ id: null, name: '', username: '', password: '', categories: [] });
     };
@@ -155,8 +158,9 @@ export default function AdminApp() {
         } else {
             await addDeliveryRider(riderFormData, adminUser.token);
         }
+        fetchData();
         setShowRiderForm(false);
-        setRiderFormData({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurant: '' });
+        setRiderFormData({ name: '', username: '', password: '', phone: '', address: '', rfc: '', email: '', assignedRestaurantId: '', image: '' });
     };
 
     const handleEditRider = (rider) => {
@@ -588,7 +592,7 @@ export default function AdminApp() {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                                        {r.categories?.map(c => (
+                                        {(Array.isArray(r.categories) ? r.categories : []).map(c => (
                                             <span key={c} style={{ fontSize: '0.75rem', padding: '2px 8px', background: '#F1F5F9', borderRadius: '10px' }}>
                                                 {c}
                                             </span>
@@ -663,12 +667,12 @@ export default function AdminApp() {
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Asignar Restaurante (Opcional)</label>
                                             <select
                                                 className="input"
-                                                value={riderFormData.assignedRestaurant}
-                                                onChange={e => setRiderFormData({ ...riderFormData, assignedRestaurant: e.target.value })}
+                                                value={riderFormData.assignedRestaurantId || ''}
+                                                onChange={e => setRiderFormData({ ...riderFormData, assignedRestaurantId: e.target.value })}
                                             >
                                                 <option value="">Cualquier restaurante (Abierto)</option>
                                                 {restaurants.map(r => (
-                                                    <option key={r.id} value={r.name}>{r.name}</option>
+                                                    <option key={r.id} value={r.id}>{r.name}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -729,7 +733,7 @@ export default function AdminApp() {
                                             <td style={{ padding: '1rem' }}>
                                                 {rider.assignedRestaurant ? (
                                                     <span style={{ fontSize: '0.85rem', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>
-                                                        {rider.assignedRestaurant}
+                                                        {rider.assignedRestaurant.name}
                                                     </span>
                                                 ) : (
                                                     <span style={{ fontSize: '0.85rem', color: '#94A3B8' }}>Libre (Todos)</span>

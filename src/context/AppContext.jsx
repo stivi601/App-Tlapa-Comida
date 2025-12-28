@@ -137,7 +137,7 @@ export const AppProvider = ({ children }) => {
             });
             if (res.ok) {
                 const newRest = await res.json();
-                setRestaurants([...restaurants, newRest]);
+                setRestaurants(prev => [...prev, newRest]);
                 return true;
             }
         } catch (error) {
@@ -275,7 +275,7 @@ export const AppProvider = ({ children }) => {
             });
             if (res.ok) {
                 const newAddr = await res.json();
-                setCustomerAddresses([...customerAddresses, newAddr]);
+                setCustomerAddresses(prev => [...prev, newAddr]);
                 return true;
             }
         } catch (error) {
@@ -336,7 +336,7 @@ export const AppProvider = ({ children }) => {
             });
             if (res.ok) {
                 const newRider = await res.json();
-                setDeliveryRiders([...deliveryRiders, newRider]);
+                setDeliveryRiders(prev => [...prev, newRider]);
                 return true;
             }
         } catch (error) {
