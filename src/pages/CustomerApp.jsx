@@ -11,6 +11,34 @@ import LocationPicker from '../components/LocationPicker';
 // Helpers & Constants
 import { formatPrice } from '../utils/helpers';
 import { ORDER_STATUS, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../constants/orderStatus';
+import React from 'react';
+
+// Componente para capturar errores de renderizado (especialmente de Google Maps)
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("ErrorBoundary caught an error", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback || (
+                <div style={{ padding: '1rem', background: '#FEE2E2', color: '#B91C1C', borderRadius: '12px', fontSize: '0.85rem' }}>
+                    Hubo un problema al cargar este elemento.
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 export default function CustomerApp() {
     const {
