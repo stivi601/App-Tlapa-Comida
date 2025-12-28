@@ -11,10 +11,10 @@ export default function AdminApp() {
         restaurantCategories, addRestaurantCategory, removeRestaurantCategory,
         addRestaurant, updateRestaurant, deleteRestaurant,
         sendMassNotification,
-        deliveryRiders, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders } = useApp();
+        deliveryRiders, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders,
+        adminUser, setAdminUser } = useApp();
 
-    // Auth State
-    const [adminUser, setAdminUser] = useState(null);
+    // Sections State
 
     const [activeSection, setActiveSection] = useState('Dashboard');
     const [newCatName, setNewCatName] = useState('');
@@ -48,27 +48,8 @@ export default function AdminApp() {
     // Users List State
     const [users, setUsers] = useState([]);
 
-    // Check for saved session on mount
-    useEffect(() => {
-        const token = localStorage.getItem('adminToken');
-        if (token) {
-            // Validate token with backend
-            fetch(`${API_URL}/api/auth/me`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.role === 'ADMIN') {
-                        setAdminUser({ ...data, token });
-                    } else {
-                        localStorage.removeItem('adminToken');
-                    }
-                })
-                .catch(() => {
-                    localStorage.removeItem('adminToken');
-                });
-        }
-    }, []);
+    // El estado adminUser viene directamente del AppContext
+    // No es necesario un useEffect aquí para cargar de localStorage
 
     const fetchData = async () => {
         if (!adminUser) return;
@@ -106,7 +87,6 @@ export default function AdminApp() {
     }, [adminUser]);
 
     const handleLogout = () => {
-        localStorage.removeItem('adminToken');
         setAdminUser(null);
     };
 

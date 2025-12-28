@@ -26,10 +26,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                 throw new Error(data.error || 'Error al iniciar sesión');
             }
 
-            // Guardar token en localStorage
-            localStorage.setItem('adminToken', data.token);
-
-            // Pasar datos al componente padre
+            // Pasar datos al componente padre (AppContext se encargará de localstorage)
             onLoginSuccess({ ...data.user, token: data.token });
 
         } catch (err) {

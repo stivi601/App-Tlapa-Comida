@@ -141,7 +141,7 @@ const createRider = async (req, res) => {
                 password: hashedPassword,
                 phone,
                 rfc,
-                assignedRestaurantId,
+                assignedRestaurantId: assignedRestaurantId || null,
                 image,
                 totalDeliveries: 0,
                 isOnline: false
@@ -169,7 +169,13 @@ const updateRider = async (req, res) => {
         const allowed = ['name', 'username', 'password', 'phone', 'rfc', 'image', 'assignedRestaurantId', 'isOnline', 'totalDeliveries'];
 
         allowed.forEach(field => {
-            if (body[field] !== undefined) data[field] = body[field];
+            if (body[field] !== undefined) {
+                if (field === 'assignedRestaurantId' && body[field] === '') {
+                    data[field] = null;
+                } else {
+                    data[field] = body[field];
+                }
+            }
         });
 
         if (data.password) {
