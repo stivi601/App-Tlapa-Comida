@@ -52,22 +52,11 @@ app.use('/api/users', require('./src/routes/users'));
 app.use('/api/reviews', require('./src/routes/reviews'));
 
 
-// Iniciar servidor
-const server = app.listen(PORT, () => {
-    console.log(`\n✅ Servidor corriendo en: http://localhost:${PORT}`);
-    console.log(`📡 Entorno: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️ Database URL configurada: ${process.env.DATABASE_URL ? 'SÍ' : 'NO'}`);
-    console.log(`🔐 JWT Secret configurado: ${process.env.JWT_SECRET ? 'SÍ' : 'NO'}`);
-    console.log(`🚀 Rutas activas:`);
-    console.log(`   🍔 /api/restaurants`);
-    console.log(`   📦 /api/orders\n`);
-});
-
 // Manejador de errores global para capturar fallos inesperados
 app.use((err, req, res, next) => {
     console.error('🔥 ERROR GLOBAL CAPTURADO:');
     console.error('Mensaje:', err.message);
-    console.error('Stack:', err.stack);
+    if (err.stack) console.error('Stack:', err.stack);
 
     if (res.headersSent) {
         return next(err);
@@ -79,3 +68,33 @@ app.use((err, req, res, next) => {
         code: err.code || 'UNKNOWN_ERROR'
     });
 });
+
+// Probar conexión a la base de datos e iniciar servidor
+const prisma = require('./src/utils/prisma');
+
+async function startServer() {
+    console.log('🔄 Verificando conexión a la base de datos...');
+    try {
+        await prisma.$connect();
+        console.log('✅ Conexión a la base de datos exitosa');
+
+        app.listen(PORT, () => {
+            console.log(`\n🚀 Servidor corriendo en: http://localhost:${PORT}`);
+            console.log(`📡 Entorno: ${process.env.NODE_ENV || 'production'}`);
+            console.log(`🗄️ DB: ${process.env.DATABASE_URL ? 'SÍ' : 'NO'}`);
+        });
+    } catch (error) {
+        console.error('❌ No se pudo conectar a la base de datos:');
+        console.error(error);
+        // En producción en Render, es mejor intentar arrancar aunque falle el primer ping,
+        // pero para depurar este error 500, queremos saber si falla aquí.
+        // process.exit(1); 
+
+        // Arrancamos de todos modos para que al menos el health check responda algo
+        app.listen(PORT, () => {
+            console.log(`\n⚠️ Servidor corriendo CON ERRORES DE DB en: http://localhost:${PORT}`);
+        });
+    }
+}
+
+startServer();
