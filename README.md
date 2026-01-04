@@ -4,12 +4,13 @@
 
 ![Tlapa Comida](https://img.shields.io/badge/Tlapa-Comida-orange?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=for-the-badge&logo=react)
-![Vite](https://img.shields.io/badge/Vite-7.2.4-646CFF?style=for-the-badge&logo=vite)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**Plataforma completa de delivery de comida inspirada en Uber Eats y DiDi Food**
+**Plataforma completa de delivery de comida con backend real, base de datos PostgreSQL y autenticación JWT**
 
-[Demo](#demo) • [Características](#características) • [Instalación](#instalación) • [Documentación](#documentación)
+[Demo](#demo) • [Características](#características) • [Instalación](#instalación) • [API](#api-endpoints)
 
 </div>
 
@@ -19,48 +20,285 @@
 
 - [Descripción](#descripción)
 - [Características](#características)
-- [Módulos de la Aplicación](#módulos-de-la-aplicación)
+- [Arquitectura](#arquitectura)
 - [Tecnologías](#tecnologías)
 - [Instalación](#instalación)
-- [Uso](#uso)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Documentación](#documentación)
+- [Configuración](#configuración)
+- [API Endpoints](#api-endpoints)
+- [Módulos de la Aplicación](#módulos-de-la-aplicación)
+- [Despliegue](#despliegue)
 - [Roadmap](#roadmap)
-- [Contribuir](#contribuir)
-- [Licencia](#licencia)
 
 ---
 
 ## 🎯 Descripción
 
-**Tlapa Comida** es una plataforma completa de delivery de comida desarrollada con React y Vite. El sistema incluye 4 aplicaciones independientes que trabajan en conjunto para ofrecer una experiencia completa de pedido y entrega de comida.
+**Tlapa Comida** es una plataforma completa de delivery de comida con arquitectura cliente-servidor. Incluye un backend robusto con Node.js, Express y PostgreSQL, junto con 4 aplicaciones frontend que trabajan en conjunto para ofrecer una experiencia completa de pedido y entrega.
 
 ### ✨ Características Principales
 
-- 🛒 **Sistema de Pedidos Completo** - Desde la selección hasta la entrega
+- 🔐 **Autenticación JWT** - Sistema seguro de login y registro
+- 🗄️ **Base de Datos PostgreSQL** - Persistencia real con Prisma ORM
 - 📱 **4 Aplicaciones Integradas** - Cliente, Restaurante, Repartidor y Admin
-- 🌍 **Geolocalización en Tiempo Real** - Compartir ubicación vía WhatsApp
-- ⭐ **Sistema de Calificaciones** - Feedback de clientes
-- 🎨 **Diseño Moderno y Responsivo** - UI/UX premium
-- 🔄 **Estados de Pedido en Tiempo Real** - Seguimiento completo
+- ⭐ **Sistema de Reseñas** - Calificaciones y comentarios de clientes
+- 🎨 **Diseño Moderno y Responsivo** - UI/UX premium mobile-first
+- 🔄 **Seguimiento de Pedidos** - Estados en tiempo real con stepper visual
 - 📊 **Dashboard Administrativo** - Gestión completa del negocio
+- 🌍 **Geolocalización** - Compartir ubicación vía WhatsApp
+- 🚀 **Desplegado en Render** - Backend y base de datos en producción
+
+---
+
+## 🏗️ Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FRONTEND (React + Vite)              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │
+│  │ Customer │  │Restaurant│  │ Delivery │  │ Admin  │ │
+│  │   App    │  │   App    │  │   App    │  │  Panel │ │
+│  └─────┬────┘  └─────┬────┘  └─────┬────┘  └────┬───┘ │
+└────────┼─────────────┼─────────────┼─────────────┼─────┘
+         │             │             │             │
+         └─────────────┴─────────────┴─────────────┘
+                         │ REST API
+         ┌───────────────┴───────────────┐
+         │   BACKEND (Node.js + Express) │
+         │  ┌──────────────────────────┐ │
+         │  │  Controllers & Routes    │ │
+         │  │  - Auth (JWT)            │ │
+         │  │  - Restaurants           │ │
+         │  │  - Orders                │ │
+         │  │  - Reviews               │ │
+         │  │  - Delivery              │ │
+         │  └────────┬─────────────────┘ │
+         └───────────┼───────────────────┘
+                     │ Prisma ORM
+         ┌───────────┴───────────────┐
+         │   PostgreSQL Database     │
+         │  - Users                  │
+         │  - Restaurants            │
+         │  - Orders                 │
+         │  - Reviews                │
+         │  - DeliveryRiders         │
+         └───────────────────────────┘
+```
+
+---
+
+## 🛠️ Tecnologías
+
+### Backend
+- **Node.js 18+** - Runtime de JavaScript
+- **Express 4.18** - Framework web
+- **Prisma 5.10** - ORM para PostgreSQL
+- **PostgreSQL 16** - Base de datos relacional
+- **JWT** - Autenticación y autorización
+- **bcryptjs** - Hashing de contraseñas
+- **Twilio** - SMS (opcional)
+
+### Frontend
+- **React 19.2.0** - Biblioteca de UI
+- **Vite 7.2.4** - Build tool y dev server
+- **React Router DOM 7.11.0** - Enrutamiento
+- **Lucide React 0.561.0** - Iconos modernos
+- **Context API** - Gestión de estado global
+
+### DevOps
+- **Render** - Hosting de backend y base de datos
+- **Git/GitHub** - Control de versiones
+
+---
+
+## 📦 Instalación
+
+### Prerrequisitos
+
+- Node.js 18+
+- PostgreSQL 14+ (o usar la base de datos de Render)
+- npm o yarn
+
+### Pasos
+
+1. **Clonar el repositorio**
+```bash
+git clone https://github.com/stivi601/App-Tlapa-Comida.git
+cd App-Tlapa-Comida
+```
+
+2. **Instalar dependencias del backend**
+```bash
+cd backend
+npm install
+```
+
+3. **Configurar variables de entorno**
+```bash
+# Crear archivo .env en /backend
+cp .env.example .env
+```
+
+Editar `.env`:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/tlapa_comida"
+JWT_SECRET="tu_secreto_super_seguro"
+PORT=3000
+```
+
+4. **Configurar base de datos**
+```bash
+# Generar cliente de Prisma
+npx prisma generate
+
+# Sincronizar esquema con la base de datos
+npx prisma db push
+
+# Poblar con datos de prueba
+npx prisma db seed
+```
+
+5. **Instalar dependencias del frontend**
+```bash
+cd ..
+npm install
+```
+
+6. **Configurar API URL del frontend**
+```bash
+# Crear archivo .env en la raíz
+echo "VITE_API_URL=http://localhost:3000" > .env
+```
+
+7. **Iniciar el proyecto**
+
+Terminal 1 - Backend:
+```bash
+cd backend
+npm run dev
+```
+
+Terminal 2 - Frontend:
+```bash
+npm run dev
+```
+
+8. **Abrir en el navegador**
+```
+http://localhost:5173
+```
+
+---
+
+## ⚙️ Configuración
+
+### Variables de Entorno
+
+#### Backend (`/backend/.env`)
+```env
+DATABASE_URL="postgresql://user:password@host:5432/dbname"
+JWT_SECRET="clave_secreta_jwt"
+PORT=3000
+NODE_ENV=development
+
+# Opcional - Twilio para SMS
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+```
+
+#### Frontend (`/.env`)
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+### Base de Datos
+
+El proyecto usa **Prisma** como ORM. El esquema incluye:
+
+- **User** - Usuarios del sistema (clientes y admins)
+- **Restaurant** - Restaurantes con menú
+- **MenuItem** - Platillos de cada restaurante
+- **Order** - Pedidos con items y estados
+- **OrderItem** - Items individuales de cada pedido
+- **Review** - Reseñas de clientes
+- **DeliveryRider** - Repartidores
+- **Address** - Direcciones de entrega
+- **Notification** - Notificaciones del sistema
+
+---
+
+## 🔌 API Endpoints
+
+### Autenticación
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/auth/register` | Registrar nuevo usuario | No |
+| POST | `/api/auth/login` | Login de cliente | No |
+| POST | `/api/auth/admin/login` | Login de administrador | No |
+| POST | `/api/auth/restaurant/login` | Login de restaurante | No |
+| GET | `/api/auth/me` | Obtener perfil actual | Sí |
+
+### Restaurantes
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/restaurants` | Listar todos los restaurantes | No |
+| GET | `/api/restaurants/:id` | Obtener restaurante por ID | No |
+| POST | `/api/restaurants` | Crear restaurante | Admin |
+| PUT | `/api/restaurants/:id` | Actualizar restaurante | Admin |
+| DELETE | `/api/restaurants/:id` | Eliminar restaurante | Admin |
+| POST | `/api/restaurants/:id/menu` | Agregar platillo al menú | Admin/Restaurant |
+| DELETE | `/api/restaurants/:id/menu/:itemId` | Eliminar platillo | Admin/Restaurant |
+
+### Pedidos
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/orders` | Listar pedidos (filtrado por rol) | Sí |
+| POST | `/api/orders` | Crear nuevo pedido | Customer |
+| PUT | `/api/orders/:id/status` | Actualizar estado del pedido | Sí |
+| PUT | `/api/orders/:id/assign` | Asignar repartidor | Delivery |
+
+### Reseñas
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/reviews` | Crear reseña | Customer |
+| GET | `/api/reviews/restaurant/:id` | Obtener reseñas de restaurante | No |
+
+### Repartidores
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/delivery/available-orders` | Pedidos disponibles para recoger | Delivery |
+
+### Admin
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/admin/users` | Listar usuarios | Admin |
+| GET | `/api/admin/riders` | Listar repartidores | Admin |
+| POST | `/api/admin/riders` | Crear repartidor | Admin |
+| PUT | `/api/admin/riders/:id` | Actualizar repartidor | Admin |
+| DELETE | `/api/admin/riders/:id` | Eliminar repartidor | Admin |
 
 ---
 
 ## 🚀 Módulos de la Aplicación
 
-### 1. 👤 Customer App (Aplicación de Cliente)
+### 1. 👤 Customer App
 
 **Funcionalidades:**
-- ✅ Login y registro de usuarios
+- ✅ Registro y login con JWT
 - ✅ Navegación y búsqueda de restaurantes
 - ✅ Filtros por categorías
-- ✅ Carrito de compras con cantidades (+/-)
+- ✅ Carrito de compras con cantidades
 - ✅ Gestión de direcciones de entrega
-- ✅ Historial de pedidos
-- ✅ Calificación de restaurantes
+- ✅ Historial de pedidos con stepper visual
+- ✅ Sistema de reseñas (estrellas + comentarios)
 - ✅ Foto de perfil
-- ✅ Notificaciones del sistema
+- ✅ Notificaciones
 
 **Credenciales de prueba:**
 - Email: `juan@example.com`
@@ -68,17 +306,16 @@
 
 ---
 
-### 2. 🍽️ Restaurant App (Aplicación de Restaurante)
+### 2. 🍽️ Restaurant App
 
 **Funcionalidades:**
-- ✅ Login de restaurantes
+- ✅ Login con JWT
 - ✅ Gestión de pedidos entrantes
-- ✅ Aceptar/rechazar pedidos
-- ✅ Cambio de estados (Preparando → Listo)
-- ✅ Gestión de menú
-- ✅ Agregar/eliminar platillos
+- ✅ Cambio de estados (Pending → Preparing → Ready)
+- ✅ Gestión completa de menú
+- ✅ Agregar/eliminar platillos con imágenes
 - ✅ Categorías de menú
-- ✅ Subir imágenes de platillos
+- ✅ Ver reseñas recibidas
 
 **Credenciales de prueba:**
 - Usuario: `paisa`
@@ -86,15 +323,13 @@
 
 ---
 
-### 3. 🛵 Delivery App (Aplicación de Repartidor)
+### 3. 🛵 Delivery App
 
 **Funcionalidades:**
-- ✅ Login de repartidores
+- ✅ Login con JWT
 - ✅ Estado ONLINE/OFFLINE
-- ✅ Ver pedidos disponibles
-- ✅ Filtrado por restaurante asignado
-- ✅ **Compartir ubicación por WhatsApp** 📍
-- ✅ Geolocalización GPS
+- ✅ Ver pedidos disponibles (filtrado por restaurante asignado)
+- ✅ Compartir ubicación por WhatsApp con GPS
 - ✅ Marcar pedidos como entregados
 - ✅ Contador de entregas totales
 - ✅ Foto de perfil
@@ -103,160 +338,126 @@
 - Usuario: `carlos`
 - Password: `123`
 
-**🆕 Característica Destacada: Compartir Ubicación**
-- Obtiene ubicación GPS en tiempo real
-- Genera enlace de Google Maps
-- Abre WhatsApp con mensaje personalizado
-- Fallback si no hay permisos de ubicación
-
 ---
 
-### 4. 🔐 Admin App (Panel de Administración)
+### 4. 🔐 Admin Panel
 
 **Funcionalidades:**
 - ✅ Dashboard con estadísticas
-- ✅ Gestión de usuarios registrados
-- ✅ Gestión de restaurantes
-- ✅ Gestión de repartidores
-- ✅ **Asignación de restaurantes a repartidores**
-- ✅ Búsqueda avanzada (usuarios, restaurantes, repartidores)
+- ✅ Gestión completa de usuarios
+- ✅ Gestión de restaurantes (CRUD completo)
+- ✅ Gestión de repartidores con asignación
+- ✅ Búsqueda avanzada
 - ✅ Gestión de categorías
 - ✅ Envío de notificaciones masivas
-- ✅ Edición completa de datos
 
 **Acceso:**
 - Ruta: `/admin`
+- Usuario: `admin`
+- Password: `admin123`
 
 ---
 
-## 🛠️ Tecnologías
+## 🌐 Despliegue
 
-### Frontend
-- **React 19.2.0** - Biblioteca de UI
-- **Vite 7.2.4** - Build tool y dev server
-- **React Router DOM 7.11.0** - Enrutamiento
-- **Lucide React 0.561.0** - Iconos modernos
+### Render (Recomendado)
 
-### Características Técnicas
-- **Context API** - Gestión de estado global
-- **CSS Vanilla** - Estilos personalizados
-- **Responsive Design** - Mobile-first
-- **Geolocation API** - Ubicación GPS
-- **WhatsApp API** - Integración de mensajería
+El proyecto incluye configuración para Render (`render.yaml`):
 
----
+1. **Crear cuenta en Render.com**
 
-## 📦 Instalación
+2. **Conectar repositorio de GitHub**
 
-### Prerrequisitos
+3. **El archivo `render.yaml` configura automáticamente:**
+   - Servicio web (backend)
+   - Base de datos PostgreSQL
+   - Variables de entorno
+   - Build y start commands
 
-- Node.js 18+ 
-- npm o yarn
+4. **Variables de entorno en Render:**
+   - `DATABASE_URL` - Auto-configurada
+   - `JWT_SECRET` - Auto-generada
+   - `NODE_ENV=production`
 
-### Pasos
-
-1. **Clonar el repositorio**
-```bash
-git clone https://github.com/tu-usuario/tlapa-comida.git
-cd tlapa-comida
-```
-
-2. **Instalar dependencias**
-```bash
-npm install
-```
-
-3. **Iniciar servidor de desarrollo**
-```bash
-npm run dev
-```
-
-4. **Abrir en el navegador**
-```
-http://localhost:5173
-```
-
----
-
-## 🎮 Uso
-
-### Flujo Completo de Pedido
-
-1. **Cliente hace pedido**
-   - Login en Customer App
-   - Seleccionar restaurante
-   - Agregar items al carrito
-   - Confirmar pedido
-   - Estado: `PENDING`
-
-2. **Restaurante prepara**
-   - Login en Restaurant App
-   - Aceptar pedido → `PREPARING`
-   - Marcar como listo → `READY`
-
-3. **Repartidor entrega**
-   - Login en Delivery App
-   - Estar ONLINE
-   - Recoger pedido → `DELIVERING`
-   - **Compartir ubicación por WhatsApp** 📍
-   - Marcar como entregado → `COMPLETED`
-
-4. **Cliente califica**
-   - Ver pedido en historial
-   - Calificar con estrellas ⭐
-   - Rating se actualiza en el restaurante
+5. **Frontend:**
+   - Desplegar en Vercel/Netlify
+   - Configurar `VITE_API_URL` con la URL del backend de Render
 
 ---
 
 ## 📁 Estructura del Proyecto
 
 ```
-tlapa-comida/
+App-Tlapa-Comida/
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma          # Esquema de base de datos
+│   │   └── seed.js                # Datos de prueba
+│   ├── src/
+│   │   ├── controllers/           # Lógica de negocio
+│   │   │   ├── authController.js
+│   │   │   ├── restaurantController.js
+│   │   │   ├── orderController.js
+│   │   │   ├── reviewController.js
+│   │   │   └── deliveryController.js
+│   │   ├── routes/                # Definición de rutas
+│   │   │   ├── auth.js
+│   │   │   ├── restaurants.js
+│   │   │   ├── orders.js
+│   │   │   ├── reviews.js
+│   │   │   └── delivery.js
+│   │   ├── middleware/            # Middlewares
+│   │   │   └── auth.js
+│   │   └── utils/
+│   │       └── prisma.js          # Cliente de Prisma
+│   ├── server.js                  # Entry point del backend
+│   ├── start.sh                   # Script de inicio
+│   └── package.json
 ├── src/
 │   ├── pages/
-│   │   ├── Welcome.jsx          # Pantalla de bienvenida
-│   │   ├── CustomerApp.jsx      # App de cliente
-│   │   ├── RestaurantApp.jsx    # App de restaurante
-│   │   ├── DeliveryApp.jsx      # App de repartidor
-│   │   └── AdminApp.jsx         # Panel de admin
+│   │   ├── Welcome.jsx
+│   │   ├── CustomerApp.jsx
+│   │   ├── RestaurantApp.jsx
+│   │   ├── DeliveryApp.jsx
+│   │   └── AdminApp.jsx
 │   ├── context/
-│   │   └── AppContext.jsx       # Estado global
-│   ├── App.jsx                  # Componente principal
-│   ├── main.jsx                 # Entry point
-│   └── index.css                # Estilos globales
-├── public/                      # Archivos estáticos
-├── docs/
-│   ├── PLAN_DE_PRUEBAS.md      # Plan de testing
-│   ├── MEJORAS_DELIVERY_WHATSAPP.md
-│   └── CORRECCION_PEDIDOS_REPARTIDOR.md
+│   │   └── AppContext.jsx         # Estado global + API calls
+│   ├── components/
+│   │   └── AdminLogin.jsx
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── index.css
+├── render.yaml                    # Configuración de Render
 ├── package.json
-├── vite.config.js
 └── README.md
 ```
 
 ---
 
-## 📚 Documentación
+## 🗺️ Roadmap
 
-### Documentos Disponibles
+### ✅ Fase 1 - Completada
+- [x] Backend con Express y PostgreSQL
+- [x] Autenticación JWT
+- [x] CRUD completo de restaurantes
+- [x] Sistema de pedidos
+- [x] Sistema de reseñas
+- [x] Seguimiento visual de pedidos
+- [x] Despliegue en Render
 
-- **[Plan de Pruebas](PLAN_DE_PRUEBAS.md)** - Guía completa de testing
-- **[Mejoras Delivery WhatsApp](MEJORAS_DELIVERY_WHATSAPP.md)** - Documentación de geolocalización
-- **[Corrección Pedidos](CORRECCION_PEDIDOS_REPARTIDOR.md)** - Fix de filtrado de pedidos
+### 🚧 Fase 2 - En Desarrollo
+- [ ] Pasarela de pagos (Stripe/PayPal)
+- [ ] OTP para verificación de entrega
+- [ ] Login con OTP (sin contraseña)
+- [ ] Notificaciones push en tiempo real
 
-### Estados de Pedidos
-
-```
-PENDING → PREPARING → READY → DELIVERING → COMPLETED
-```
-
-| Estado | Descripción | Quién lo ve |
-|--------|-------------|-------------|
-| `pending` | Pedido recién creado | Cliente, Restaurante |
-| `preparing` | Restaurante preparando | Cliente, Restaurante |
-| `ready` | Listo para recoger | Cliente, Restaurante, Repartidor |
-| `delivering` | En camino | Cliente, Repartidor |
-| `completed` | Entregado | Cliente |
+### 💡 Fase 3 - Futuro
+- [ ] Tracking en tiempo real con mapa
+- [ ] Chat en tiempo real (Socket.io)
+- [ ] App móvil nativa (React Native)
+- [ ] Sistema de cupones y descuentos
+- [ ] Programa de lealtad
+- [ ] Analytics avanzado
 
 ---
 
@@ -267,63 +468,38 @@ PENDING → PREPARING → READY → DELIVERING → COMPLETED
 - **Success:** `#10B981` (Verde)
 - **Warning:** `#F59E0B` (Amarillo)
 - **Error:** `#EF4444` (Rojo)
-- **WhatsApp:** `#25D366` (Verde WhatsApp)
+- **WhatsApp:** `#25D366`
 
 ### Animaciones
 - ✨ Scale-up en items del menú
 - 🎯 Bounce en items del carrito
 - 🌊 Fade-in en transiciones
 - 💫 Hover effects en botones
+- 🔄 Stepper animado para estados de pedido
 
 ---
 
-## 🗺️ Roadmap
+## 🔒 Seguridad
 
-### ✅ Completado
-- [x] Sistema de pedidos completo
-- [x] 4 módulos funcionales
-- [x] Geolocalización y WhatsApp
-- [x] Sistema de calificaciones
-- [x] Asignación de repartidores
-- [x] Búsqueda avanzada
-
-### 🚧 En Desarrollo
-- [ ] Backend real con base de datos
-- [ ] Autenticación con JWT
-- [ ] Pasarela de pagos
-- [ ] Notificaciones push
-- [ ] Chat en tiempo real
-
-### 💡 Futuro
-- [ ] Tracking en tiempo real con mapa
-- [ ] App móvil nativa
-- [ ] Sistema de cupones
-- [ ] Programa de lealtad
-- [ ] Analytics avanzado
-
----
-
-## 🤝 Contribuir
-
-Las contribuciones son bienvenidas! Por favor:
-
-1. Fork el proyecto
-2. Crea una rama (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+- ✅ Contraseñas hasheadas con bcrypt
+- ✅ Autenticación JWT con expiración
+- ✅ Validación de roles (RBAC)
+- ✅ Validación de ownership en pedidos
+- ✅ CORS configurado
+- ✅ Variables de entorno para secretos
+- ✅ SQL injection prevention (Prisma)
 
 ---
 
 ## 📝 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT.
 
 ---
 
-## 👥 Autores
+## 👥 Autor
 
-- **Tu Nombre** - *Desarrollo Inicial* - [tu-usuario](https://github.com/tu-usuario)
+- **Adrian Mendoza** - *Desarrollo Completo* - [stivi601](https://github.com/stivi601)
 
 ---
 
@@ -331,15 +507,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 - Inspirado en Uber Eats y DiDi Food
 - Iconos por [Lucide](https://lucide.dev/)
-- Imágenes de [Unsplash](https://unsplash.com/)
-
----
-
-## 📞 Contacto
-
-- **Email:** tu-email@example.com
-- **GitHub:** [@tu-usuario](https://github.com/tu-usuario)
-- **LinkedIn:** [Tu Nombre](https://linkedin.com/in/tu-perfil)
+- Desarrollado con asistencia de IA
 
 ---
 
@@ -347,6 +515,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 **⭐ Si te gusta este proyecto, dale una estrella en GitHub! ⭐**
 
-Hecho con ❤️ y ☕ por [Tu Nombre]
+Hecho con ❤️ y ☕
 
 </div>

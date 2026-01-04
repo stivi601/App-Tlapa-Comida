@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // Importar rutas
 const authRoutes = require('./src/routes/auth');
@@ -13,26 +15,80 @@ const smsRoutes = require('./src/routes/sms');
 // Configuración
 dotenv.config();
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
+// Configuración de Socket.io
+const io = new Server(server, {
+    cors: {
+        origin: process.env.FRONTEND_URL || "*", // Permitir todo para evitar problemas de CORS en dev
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true
+    },
+    transports: ['websocket', 'polling']
+});
+
+// Store para manejar conexiones
+const userSockets = new Map();
+const restaurantSockets = new Map();
+const driverSockets = new Map();
+
+io.on('connection', (socket) => {
+    console.log('Usuario conectado:', socket.id);
+
+    socket.on('register_user', (data) => {
+        const { userId, userType } = data;
+        if (!userId) return;
+
+        if (userType === 'customer') {
+            userSockets.set(userId, socket.id);
+            socket.join(`user_${userId}`);
+        } else if (userType === 'restaurant') {
+            restaurantSockets.set(userId, socket.id);
+            socket.join(`restaurant_${userId}`);
+        } else if (userType === 'driver') {
+            driverSockets.set(userId, socket.id);
+            socket.join(`driver_${userId}`);
+        }
+
+        socket.userId = userId;
+        socket.userType = userType;
+        console.log(`${userType} registrado: ${userId}`);
+    });
+
+    socket.on('join_order_room', (orderId) => {
+        socket.join(`order_${orderId}`);
+        console.log(`Socket ${socket.id} unido a order_${orderId}`);
+    });
+
+    socket.on('disconnect', () => {
+        if (socket.userId) {
+            if (socket.userType === 'customer') userSockets.delete(socket.userId);
+            else if (socket.userType === 'restaurant') restaurantSockets.delete(socket.userId);
+            else if (socket.userType === 'driver') driverSockets.delete(socket.userId);
+        }
+    });
+});
+
+// Exportar instancias para usar en utils/rutas
+module.exports = { app, server, io, userSockets, restaurantSockets, driverSockets };
+
 // Middleware
-app.use(cors()); // Permite peticiones desde el Frontend (Vite)
-app.use(express.json({ limit: '50mb' })); // Permite leer JSON en las peticiones (aumentado para imágenes base64)
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+
+// Middleware para adjuntar io a req (opcional, si se prefiere usar req.io)
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
 
 // Rutas de prueba
 app.get('/', (req, res) => {
     res.json({
-        message: '🚀 Servidor Backend Tlapa Comida funcionando correctamente',
+        message: '🚀 Servidor Backend Tlapa Comida funcionando correctamente (con WebSockets)',
         status: 'online',
         timestamp: new Date(),
-        endpoints: {
-            auth: '/api/auth',
-            restaurants: '/api/restaurants',
-            orders: '/api/orders',
-            delivery: '/api/delivery',
-            admin: '/api/admin',
-            health: '/api/health'
-        }
     });
 });
 
@@ -51,48 +107,32 @@ app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/reviews', require('./src/routes/reviews'));
 
-
-// Manejador de errores global para capturar fallos inesperados
+// Error Handler
 app.use((err, req, res, next) => {
-    console.error('🔥 ERROR GLOBAL CAPTURADO:');
-    console.error('Mensaje:', err.message);
-    if (err.stack) console.error('Stack:', err.stack);
-
-    if (res.headersSent) {
-        return next(err);
-    }
-
-    res.status(500).json({
-        error: 'Error interno del servidor',
-        detail: err.message,
-        code: err.code || 'UNKNOWN_ERROR'
-    });
+    console.error('🔥 ERROR GLOBAL:', err.message);
+    if (res.headersSent) return next(err);
+    res.status(500).json({ error: 'Error interno del servidor', detail: err.message });
 });
 
-// Probar conexión a la base de datos e iniciar servidor
+// Iniciar Servidor
 const prisma = require('./src/utils/prisma');
 
 async function startServer() {
     console.log('🔄 Verificando conexión a la base de datos...');
     try {
         await prisma.$connect();
-        console.log('✅ Conexión a la base de datos exitosa');
+        console.log('✅ Conexión a DB exitosa');
 
-        app.listen(PORT, () => {
+        // Usar server.listen en lugar de app.listen
+        server.listen(PORT, () => {
             console.log(`\n🚀 Servidor corriendo en: http://localhost:${PORT}`);
-            console.log(`📡 Entorno: ${process.env.NODE_ENV || 'production'}`);
-            console.log(`🗄️ DB: ${process.env.DATABASE_URL ? 'SÍ' : 'NO'}`);
+            console.log(`📡 Socket.IO activo`);
         });
     } catch (error) {
-        console.error('❌ No se pudo conectar a la base de datos:');
-        console.error(error);
-        // En producción en Render, es mejor intentar arrancar aunque falle el primer ping,
-        // pero para depurar este error 500, queremos saber si falla aquí.
-        // process.exit(1); 
-
-        // Arrancamos de todos modos para que al menos el health check responda algo
-        app.listen(PORT, () => {
-            console.log(`\n⚠️ Servidor corriendo CON ERRORES DE DB en: http://localhost:${PORT}`);
+        console.error('❌ Error DB:', error);
+        // Fallback
+        server.listen(PORT, () => {
+            console.log(`\n⚠️ Servidor corriendo SIN DB en: http://localhost:${PORT}`);
         });
     }
 }

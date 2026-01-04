@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChefHat, CheckCircle, Clock, ArrowRight, Plus, Utensils, X, Image, ChevronDown, ChevronUp, Camera, Trash2, Lock } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
+import { ChefHat, CheckCircle, Clock, ArrowRight, Plus, Utensils, X, Image, ChevronDown, ChevronUp, Camera, Trash2, Lock, Bell } from 'lucide-react';
 
 export default function RestaurantApp() {
     const { orders, updateOrderStatus, restaurants, addMenuItem, removeMenuItem, removeMenuCategory, loginRestaurant, restaurantUser, setRestaurantUser } = useApp();
@@ -11,6 +12,8 @@ export default function RestaurantApp() {
     const [loginError, setLoginError] = useState('');
 
     const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'menu'
+    const [lastOrderCount, setLastOrderCount] = useState(0);
+    const audioRef = useRef(null);
 
     // Form State
     const [newItem, setNewItem] = useState({ name: '', price: '', category: '', desc: '', image: null });
@@ -92,8 +95,70 @@ export default function RestaurantApp() {
         setShowAddForm(false);
     };
 
+    // WebSockets Implementation
+    const { socket } = useSocket();
+    const { addOrderLocal, updateOrderLocal } = useApp();
+
+    useEffect(() => {
+        if (!socket || !restaurantUser) return;
+
+        // Escuchar nuevos pedidos
+        socket.on('new_order', (data) => {
+            // data puede venir como { orderId: ..., order: ... } o directo order según backend
+            const order = data.order || data;
+
+            // Verificar que no exista ya (por si acaso)
+            const exists = orders.some(o => o.id === order.id);
+            if (!exists) {
+                // Formatear si es necesario, aunque el backend ya manda objeto completo
+                const formatted = {
+                    ...order,
+                    time: "Ahora mismo",
+                    customer: order.customer?.name || "Cliente",
+                    items: order.items?.map(i => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ') || "Items"
+                };
+
+                addOrderLocal(formatted);
+
+                // Sonido y Notificación
+                if (audioRef.current) audioRef.current.play().catch(e => console.log(e));
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('¡Nuevo Pedido!', { body: `Nuevo pedido de ${formatted.customer}` });
+                }
+            }
+        });
+
+        // Escuchar actualizaciones (ej. driver assigned, completed, etc)
+        socket.on('driver_assigned', (data) => {
+            // data: { orderId, riderId } - Podríamos hacer fetch update o simplemente confiar en que status update llegará también
+        });
+
+        socket.on('order_completed', (order) => {
+            updateOrderLocal(order);
+        });
+
+        // También escuchar cambios de estado genéricos si el backend los emite a la sala del restaurante
+        // Nota: En backend emitimos 'order_status_update' al USER, no a la sala restaurant, excepto 'order_completed'.
+        // Podríamos agregar 'order_status_update' al restaurante también en backend si queremos ver cambios en tiempo real (ej. cuando el rider lo marca como picked up)
+
+        return () => {
+            socket.off('new_order');
+            socket.off('driver_assigned');
+            socket.off('order_completed');
+        };
+    }, [socket, restaurantUser, orders]); // orders dependency para chequeo de duplicados simple
+
+    // Solicitar permiso para notificaciones
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
+
     return (
         <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
+            {/* Audio para notificaciones */}
+            <audio ref={audioRef} src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE" preload="auto" />
             <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1 style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>Panel de Restaurante</h1>

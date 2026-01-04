@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSocket } from '../context/SocketContext';
 import { Bike, Navigation, Package, User, LogOut, Camera, Home, CheckCircle, MapPin, Layers } from 'lucide-react';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api';
@@ -24,6 +25,32 @@ export default function DeliveryApp() {
             fetchStats();
         }
     }, [deliveryUser, activeTab]); // Recargar al cambiar de tab
+
+    // WebSockets Implementation
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (!socket || !deliveryUser) return;
+
+        socket.on('new_order_available', (order) => {
+            // Verificar duplicados
+            setAvailableOrders(prev => {
+                if (prev.find(o => o.id === order.id)) return prev;
+
+                // Notificación
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('¡Nuevo Pedido Disponible!', {
+                        body: `Pedido en ${order.restaurant?.name || 'Restaurante'}`
+                    });
+                }
+                return [order, ...prev];
+            });
+        });
+
+        return () => {
+            socket.off('new_order_available');
+        };
+    }, [socket, deliveryUser]);
 
     const fetchOrders = async () => {
         try {
@@ -320,15 +347,16 @@ export default function DeliveryApp() {
                                             </div>
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                                {order.status === 'READY' || order.status === 'PREPARING' ? (
+                                                {(order.status === 'READY' || order.status === 'PREPARING') && (
                                                     <button
                                                         className="btn"
-                                                        style={{ flex: 1, background: '#10B981', color: 'white', fontWeight: '700' }}
                                                         onClick={() => handleUpdateStatus(order.id, 'DELIVERING')}
+                                                        style={{ flex: 1, background: '#10B981', color: 'white', padding: '0.8rem', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                                                     >
-                                                        Recoger Pedido
+                                                        <CheckCircle size={18} /> Confirmar Recogida
                                                     </button>
-                                                ) : (
+                                                )}
+                                                {order.status === 'DELIVERING' && (
                                                     <>
                                                         <button
                                                             className="btn"

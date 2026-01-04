@@ -18,6 +18,7 @@ export default function AdminApp() {
 
     const [activeSection, setActiveSection] = useState('Dashboard');
     const [newCatName, setNewCatName] = useState('');
+    const [showSidebar, setShowSidebar] = useState(false); // Fixed: Moved conditional hook to top level
 
     // Notification State
     const [newNotif, setNewNotif] = useState({ title: '', message: '' });
@@ -189,7 +190,8 @@ export default function AdminApp() {
         }
     };
 
-    const [showSidebar, setShowSidebar] = useState(false);
+    // Moved to top due to conditional return
+
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: '#F8FAFC', position: 'relative' }}>

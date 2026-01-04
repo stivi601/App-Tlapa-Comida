@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { socketEvents } = require('../utils/socketUtils');
 
 /**
  * Crear un nuevo pedido
@@ -36,9 +37,17 @@ const createOrder = async (req, res) => {
             },
             include: {
                 items: true,
-                restaurant: true
+                restaurant: true,
+                customer: { select: { name: true, phone: true } }
             }
         });
+
+        // WEBSOCKETS: Notificar
+        // 1. Al restaurante
+        socketEvents.emitToRestaurant(restaurantId, 'new_order', newOrder);
+
+        // 2. Unir al usuario a la sala del pedido
+        socketEvents.emitToUser(userId, 'join_auto_room', newOrder.id);
 
         res.status(201).json(newOrder);
     } catch (error) {
@@ -133,7 +142,10 @@ const updateOrderStatus = async (req, res) => {
         const { userId, role } = req.user;
 
         // Buscar la orden para verificar propiedad
-        const order = await prisma.order.findUnique({ where: { id } });
+        const order = await prisma.order.findUnique({
+            where: { id },
+            include: { customer: true, restaurant: true, rider: true }
+        });
 
         if (!order) {
             return res.status(404).json({ error: 'Pedido no encontrado' });
@@ -157,6 +169,20 @@ const updateOrderStatus = async (req, res) => {
             where: { id },
             data: { status }
         });
+
+        // WEBSOCKETS: Notificaciones
+        // Notificar al cliente
+        socketEvents.emitToUser(order.customerId, 'order_status_update', updatedOrder);
+
+        // Si el estado es Preparing/Ready, notificar a conductores disponibles si no tiene rider
+        if ((status === 'PREPARING' || status === 'READY') && !order.riderId) {
+            socketEvents.broadcastToDrivers('new_order_available', { ...updatedOrder, restaurant: order.restaurant });
+        }
+
+        // Si se completa, notificar al restaurante también (si fue el rider quien lo completó)
+        if (status === 'COMPLETED') {
+            socketEvents.emitToRestaurant(order.restaurantId, 'order_completed', updatedOrder);
+        }
 
         res.json(updatedOrder);
     } catch (error) {
@@ -192,8 +218,15 @@ const assignOrder = async (req, res) => {
             data: {
                 riderId: finalRiderId,
                 status: 'PREPARING'
+                // No cambiamos a PREPARING si ya estaba en READY? Asumimos flujo simple.
             }
         });
+
+        // Notificar al restaurante que ya tiene rider
+        socketEvents.emitToRestaurant(order.restaurantId, 'driver_assigned', { orderId: id, riderId: finalRiderId });
+
+        // Notificar al cliente
+        socketEvents.emitToUser(order.customerId, 'order_status_update', updatedOrder);
 
         res.json(updatedOrder);
     } catch (error) {

@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "prisma": "^5.10.2",
+    "socket.io": "^4.8.3",
     "twilio": "^5.11.1"
   },
   "prisma": {
