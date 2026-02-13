@@ -33,6 +33,10 @@ const userSockets = new Map();
 const restaurantSockets = new Map();
 const driverSockets = new Map();
 
+// Inicializar Utils de WebSockets (Romper dependencia circular)
+const { initSocket } = require('./src/utils/socketUtils');
+initSocket(io, userSockets, restaurantSockets, driverSockets);
+
 io.on('connection', (socket) => {
     console.log('Usuario conectado:', socket.id);
 
@@ -71,11 +75,22 @@ io.on('connection', (socket) => {
 });
 
 // Exportar instancias para usar en utils/rutas
-module.exports = { app, server, io, userSockets, restaurantSockets, driverSockets };
+// Exportar instancias para usar en utils/rutas
+module.exports = { app, server };
 
 // Middleware
+app.use(require('helmet')()); // Security Headers
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Rate Limiting
+const limiter = require('express-rate-limit').rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/', limiter); // Apply to API routes
 
 // Middleware para adjuntar io a req (opcional, si se prefiere usar req.io)
 app.use((req, res, next) => {
@@ -114,27 +129,30 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Error interno del servidor', detail: err.message });
 });
 
-// Iniciar Servidor
-const prisma = require('./src/utils/prisma');
+// Exportar app para Vercel
+module.exports = app;
 
-async function startServer() {
-    console.log('🔄 Verificando conexión a la base de datos...');
-    try {
-        await prisma.$connect();
-        console.log('✅ Conexión a DB exitosa');
+// Iniciar Servidor solo si no estamos en Vercel
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    const prisma = require('./src/utils/prisma');
 
-        // Usar server.listen en lugar de app.listen
-        server.listen(PORT, () => {
-            console.log(`\n🚀 Servidor corriendo en: http://localhost:${PORT}`);
-            console.log(`📡 Socket.IO activo`);
-        });
-    } catch (error) {
-        console.error('❌ Error DB:', error);
-        // Fallback
-        server.listen(PORT, () => {
-            console.log(`\n⚠️ Servidor corriendo SIN DB en: http://localhost:${PORT}`);
-        });
+    async function startServer() {
+        console.log('🔄 Verificando conexión a la base de datos...');
+        try {
+            await prisma.$connect();
+            console.log('✅ Conexión a DB exitosa');
+
+            server.listen(PORT, () => {
+                console.log(`\n🚀 Servidor corriendo en: http://localhost:${PORT}`);
+                console.log(`📡 Socket.IO activo`);
+            });
+        } catch (error) {
+            console.error('❌ Error DB:', error);
+            server.listen(PORT, () => {
+                console.log(`\n⚠️ Servidor corriendo SIN DB en: http://localhost:${PORT}`);
+            });
+        }
     }
-}
 
-startServer();
+    startServer();
+}

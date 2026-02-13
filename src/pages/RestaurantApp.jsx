@@ -30,59 +30,9 @@ export default function RestaurantApp() {
         }
     };
 
-    if (!restaurantUser) {
-        return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '1rem' }}>
-                <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
-                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                        <div style={{ display: 'inline-flex', padding: '1rem', background: '#EFF6FF', borderRadius: '50%', color: 'var(--primary)', marginBottom: '1rem' }}>
-                            <ChefHat size={32} />
-                        </div>
-                        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Acceso Restaurante</h1>
-                        <p style={{ color: 'var(--text-light)' }}>Gestiona tus pedidos y menú</p>
-                    </div>
-
-                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Usuario</label>
-                            <input
-                                type="text"
-                                className="input"
-                                style={{ width: '100%' }}
-                                value={username}
-                                onChange={e => setUsername(e.target.value)}
-                                placeholder="Ej. tacos_paisa"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Contraseña</label>
-                            <div style={{ position: 'relative' }}>
-                                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                                <input
-                                    type="password"
-                                    className="input"
-                                    style={{ width: '100%', paddingLeft: '36px' }}
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    placeholder="••••••"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        {loginError && <p style={{ color: '#EF4444', fontSize: '0.9rem', textAlign: 'center' }}>{loginError}</p>}
-
-                        <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Iniciar Sesión</button>
-                    </form>
-                </div>
-            </div>
-        );
-    }
-
-    const myRestaurantId = restaurantUser.id;
+    const myRestaurantId = restaurantUser?.id;
     const myRestaurant = restaurants.find(r => r.id === myRestaurantId) || restaurantUser; // Ensure we get latest state
-    const myOrders = orders.filter(o => o.restaurant === myRestaurant.name);
+    const myOrders = orders.filter(o => o.restaurant === myRestaurant?.name);
 
     const handleAddItem = (e) => {
         e.preventDefault();
@@ -154,6 +104,56 @@ export default function RestaurantApp() {
             Notification.requestPermission();
         }
     }, []);
+
+    if (!restaurantUser) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '1rem' }}>
+                <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                        <div style={{ display: 'inline-flex', padding: '1rem', background: '#EFF6FF', borderRadius: '50%', color: 'var(--primary)', marginBottom: '1rem' }}>
+                            <ChefHat size={32} />
+                        </div>
+                        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Acceso Restaurante</h1>
+                        <p style={{ color: 'var(--text-light)' }}>Gestiona tus pedidos y menú</p>
+                    </div>
+
+                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Usuario</label>
+                            <input
+                                type="text"
+                                className="input"
+                                style={{ width: '100%' }}
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
+                                placeholder="Ej. tacos_paisa"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Contraseña</label>
+                            <div style={{ position: 'relative' }}>
+                                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input
+                                    type="password"
+                                    className="input"
+                                    style={{ width: '100%', paddingLeft: '36px' }}
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    placeholder="••••••"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {loginError && <p style={{ color: '#EF4444', fontSize: '0.9rem', textAlign: 'center' }}>{loginError}</p>}
+
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Iniciar Sesión</button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -242,13 +242,26 @@ export default function RestaurantApp() {
 
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                                     {order.status === 'pending' && (
-                                        <button
-                                            className="btn btn-primary"
-                                            style={{ flex: 1, fontSize: '0.9rem' }}
-                                            onClick={() => updateOrderStatus(order.id, 'preparing')}
-                                        >
-                                            <ChefHat size={16} /> Preparar
-                                        </button>
+                                        <>
+                                            <button
+                                                className="btn btn-primary"
+                                                style={{ flex: 1, fontSize: '0.9rem' }}
+                                                onClick={() => updateOrderStatus(order.id, 'preparing')}
+                                            >
+                                                <ChefHat size={16} /> Preparar
+                                            </button>
+                                            <button
+                                                className="btn"
+                                                style={{ flex: 1, fontSize: '0.9rem', background: '#EF4444', color: 'white' }}
+                                                onClick={() => {
+                                                    if (window.confirm('¿Rechazar este pedido?')) {
+                                                        updateOrderStatus(order.id, 'CANCELLED');
+                                                    }
+                                                }}
+                                            >
+                                                <X size={16} /> Rechazar
+                                            </button>
+                                        </>
                                     )}
                                     {order.status === 'preparing' && (
                                         <button

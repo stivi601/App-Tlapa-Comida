@@ -5,12 +5,12 @@ services:
     rootDir: backend
     env: node
     buildCommand: npm install && npx prisma generate
-    startCommand: sh start.sh
+    startCommand: node server.js
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: tlapa-comida-db
-          property: connectionString
+        sync: false # Set this in Render Dashboard from Supabase
+      - key: DIRECT_URL
+        sync: false # Set this in Render Dashboard from Supabase (session mode)
       - key: JWT_SECRET
         generateValue: true
       - key: NODE_ENV
@@ -21,9 +21,3 @@ services:
         sync: false
       - key: TWILIO_PHONE_NUMBER
         sync: false
-
-databases:
-  - name: tlapa-comida-db
-    databaseName: tlapa_comida
-    user: tlapa_user
-    plan: free # Cambiar a starter si se requiere persistencia garantizada en producción

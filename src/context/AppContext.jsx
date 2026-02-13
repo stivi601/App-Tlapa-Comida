@@ -102,6 +102,13 @@ export const AppProvider = ({ children }) => {
                 const res = await fetch(`${API_URL}/api/orders/my-orders`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (res.status === 401) {
+                    console.warn("Sesión expirada (401) en fetchMyOrders");
+                    logoutCustomer();
+                    return;
+                }
+
                 if (res.ok) {
                     const data = await res.json();
 
@@ -301,6 +308,13 @@ export const AppProvider = ({ children }) => {
             const res = await fetch(`${API_URL}/api/users/addresses`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+
+            if (res.status === 401) {
+                console.warn("Sesión expirada (401) en loadAddresses");
+                logoutCustomer();
+                return;
+            }
+
             if (res.ok) {
                 const data = await res.json();
                 setCustomerAddresses(data);
@@ -771,7 +785,7 @@ export const AppProvider = ({ children }) => {
             customerUser, loginCustomer, logoutCustomer, registerCustomer,
             customerAddresses, addAddress, removeAddress, updateAddress,
             systemNotifications, sendMassNotification,
-            restaurantUser, setRestaurantUser, loginRestaurant,
+            restaurantUser, setRestaurantUser,
             adminUser, setAdminUser,
             deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders, rateRestaurant, setDeliveryUser,
             updateOrder, updateCustomerUser, submitReview,

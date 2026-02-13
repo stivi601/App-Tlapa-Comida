@@ -341,8 +341,8 @@ export default function DeliveryApp() {
                                                 <div style={{ fontSize: '0.85rem', color: '#1E293B', fontStyle: 'italic' }}>
                                                     {order.items?.map(i => `${i.quantity}x ${i.menuItem?.name}`).join(', ')}
                                                 </div>
-                                                <div style={{ marginTop: '0.5rem', textAlign: 'right', fontWeight: '700' }}>
-                                                    ${order.total}
+                                                <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: '#DCFCE7', borderRadius: '8px', color: '#166534', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center', border: '1px dashed #166534' }}>
+                                                    💵 Cobrar: ${order.total} en Efectivo
                                                 </div>
                                             </div>
 
