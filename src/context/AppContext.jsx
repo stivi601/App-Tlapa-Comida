@@ -869,10 +869,11 @@ export const AppProvider = ({ children }) => {
             customerUser, loginCustomer, logoutCustomer, registerCustomer,
             customerAddresses, addAddress, removeAddress, updateAddress,
             systemNotifications, sendMassNotification,
-            restaurantUser, setRestaurantUser,
+            restaurantUser, setRestaurantUser, loginRestaurant,
             adminUser, setAdminUser,
             deliveryRiders, deliveryUser, loginDelivery, addDeliveryRider, updateDeliveryRider, loadDeliveryRiders, rateRestaurant, setDeliveryUser,
             updateOrder, updateCustomerUser, submitReview,
+            addMenuItem, removeMenuItem, removeMenuCategory,
             // Funciones para WebSockets
             addOrderLocal: (newOrder) => setOrders(prev => [newOrder, ...prev]),
             updateOrderLocal: (updatedOrder) => setOrders(prev => prev.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o))
