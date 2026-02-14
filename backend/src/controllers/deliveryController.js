@@ -20,25 +20,19 @@ const loginRider = async (req, res) => {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // Verificar password (asumiendo bcrypt, pero si el seed guardó texto plano temporalmente, ajustamos)
-        // En seed pusimos texto plano "123". En producción debe ser bcrypt.compare.
-        // Para este MVP vamos a permitir ambos o asumir comparación directa si falla bcrypt
         let isValid = false;
         try {
             isValid = await bcrypt.compare(password, rider.password);
         } catch (e) {
-            // Fallback para dev si guardamos sin hash en seed
             isValid = (password === rider.password);
         }
 
-        // Si el seed no usó hash, la comparación directa es necesaria
         if (!isValid && password === rider.password) isValid = true;
 
         if (!isValid) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // Generar Token
         const token = jwt.sign(
             { userId: rider.id, role: 'DELIVERY_RIDER', name: rider.name },
             JWT_SECRET,
@@ -93,13 +87,12 @@ const getRiderStats = async (req, res) => {
             select: { totalDeliveries: true }
         });
 
-        // Calcular ganancias del día (mockup logic)
-        const todayEarnings = rider.totalDeliveries * 25; // 25 pesos por entrega promedio
+        const todayEarnings = rider.totalDeliveries * 25;
 
         res.json({
             totalDeliveries: rider.totalDeliveries,
             todayEarnings,
-            rating: 4.9 // Hardcoded por ahora
+            rating: 4.9
         });
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener estadísticas' });
@@ -131,7 +124,6 @@ const createRider = async (req, res) => {
     try {
         const { name, username, password, phone, rfc, email, address, assignedRestaurantId, image } = req.body;
 
-        // Hashear password
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newRider = await prisma.deliveryRider.create({
@@ -164,7 +156,6 @@ const updateRider = async (req, res) => {
         const { id } = req.params;
         const body = req.body;
 
-        // Filtrar solo campos permitidos en el esquema actual
         const data = {};
         const allowed = ['name', 'username', 'password', 'phone', 'rfc', 'image', 'assignedRestaurantId', 'isOnline', 'totalDeliveries'];
 
@@ -211,6 +202,49 @@ const deleteRider = async (req, res) => {
     }
 };
 
+/**
+ * Actualizar perfil de repartidor
+ * PATCH /api/delivery/profile
+ */
+const updateProfile = async (req, res) => {
+    try {
+        const riderId = req.user.userId;
+        const { name, phone, password, image } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (phone) updateData.phone = phone;
+        if (image) updateData.image = image;
+
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedRider = await prisma.deliveryRider.update({
+            where: { id: riderId },
+            data: updateData,
+            select: {
+                id: true,
+                username: true,
+                name: true,
+                phone: true,
+                image: true,
+                totalDeliveries: true,
+                isOnline: true
+            }
+        });
+
+        res.json({
+            message: 'Perfil actualizado',
+            rider: updatedRider
+        });
+
+    } catch (error) {
+        console.error('Update Rider Profile Error:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+};
+
 module.exports = {
     loginRider,
     toggleStatus,
@@ -218,6 +252,6 @@ module.exports = {
     getAllRiders,
     createRider,
     updateRider,
-    deleteRider
+    deleteRider,
+    updateProfile
 };
-

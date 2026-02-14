@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getProfile, adminLogin, restaurantLogin } = require('../controllers/authController');
+const { register, login, getProfile, adminLogin, restaurantLogin, updateProfile } = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/auth');
 
 // Rutas públicas
@@ -15,6 +15,6 @@ router.post('/restaurant/login', restaurantLogin);
 
 // Rutas protegidas
 router.get('/me', authMiddleware, getProfile);
+router.patch('/profile', authMiddleware, updateProfile);
 
 module.exports = router;
-

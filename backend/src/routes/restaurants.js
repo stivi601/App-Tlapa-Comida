@@ -8,23 +8,28 @@ const {
     deleteMenuItem,
     deleteMenuCategory,
     updateRestaurant,
-    deleteRestaurant
+    deleteRestaurant,
+    toggleRestaurantStatus,
+    updateRestaurantProfile,
+    loginRestaurant
 } = require('../controllers/restaurantController');
-const { authMiddleware, requireRole } = require('../middleware/auth');
+const { authMiddleware, requireRole, requireRestaurantOwner } = require('../middleware/auth');
 
-// Rutas Públicas (Cualquiera puede ver restaurantes)
+// Rutas Públicas
 router.get('/', getAllRestaurants);
 router.get('/:id', getRestaurantById);
+router.post('/login', loginRestaurant);
 
-// Rutas Protegidas (Solo Admin puede crear restaurantes)
+// Rutas Admin (Catálogo General)
 router.post('/', authMiddleware, requireRole('ADMIN'), createRestaurant);
 router.put('/:id', authMiddleware, requireRole('ADMIN'), updateRestaurant);
 router.delete('/:id', authMiddleware, requireRole('ADMIN'), deleteRestaurant);
 
-// Rutas Protegidas (Gestión de menú - Admin o el propio Restaurante)
-router.post('/:id/menu', authMiddleware, requireRole('ADMIN', 'RESTAURANT'), addMenuItem);
-router.delete('/:id/menu/:itemId', authMiddleware, requireRole('ADMIN', 'RESTAURANT'), deleteMenuItem);
-router.delete('/:id/menu/category/:categoryName', authMiddleware, requireRole('ADMIN', 'RESTAURANT'), deleteMenuCategory);
-
+// Rutas de Gestión del Restaurante (Dueño o Admin)
+router.patch('/:id/status', authMiddleware, requireRestaurantOwner, toggleRestaurantStatus);
+router.patch('/:id/profile', authMiddleware, requireRestaurantOwner, updateRestaurantProfile);
+router.post('/:id/menu', authMiddleware, requireRestaurantOwner, addMenuItem);
+router.delete('/:id/menu/:itemId', authMiddleware, requireRestaurantOwner, deleteMenuItem);
+router.delete('/:id/menu/category/:categoryName', authMiddleware, requireRestaurantOwner, deleteMenuCategory);
 
 module.exports = router;

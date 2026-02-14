@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSocket } from '../context/SocketContext';
-import { Bike, Navigation, Package, User, LogOut, Camera, Home, CheckCircle, MapPin, Layers } from 'lucide-react';
+import { Bike, Navigation, Package, User, LogOut, Camera, Home, CheckCircle, MapPin, Layers, Edit2, X, Plus } from 'lucide-react';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api';
+const API_URL = ((import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('tu-dominio'))
+    ? import.meta.env.VITE_API_URL
+    : 'http://localhost:3000') + '/api';
 
 export default function DeliveryApp() {
     const { setDeliveryUser, deliveryUser } = useApp();
@@ -11,6 +13,7 @@ export default function DeliveryApp() {
     const [isOnline, setIsOnline] = useState(true);
     const [orders, setOrders] = useState([]);
     const [availableOrders, setAvailableOrders] = useState([]);
+    const [showEditProfile, setShowEditProfile] = useState(false);
 
     // Login State
     const [loginData, setLoginData] = useState({ username: '', password: '' });
@@ -174,6 +177,31 @@ export default function DeliveryApp() {
         }
     };
 
+    const updateRiderProfile = async (data) => {
+        try {
+            const res = await fetch(`${API_URL}/delivery/profile`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${deliveryUser.token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                setDeliveryUser({ ...result.rider, token: deliveryUser.token });
+                return { success: true };
+            } else {
+                const err = await res.json();
+                return { success: false, error: err.error };
+            }
+        } catch (error) {
+            console.error("Error updating profile", error);
+            return { success: false, error: error.message };
+        }
+    };
+
     const toggleOnlineStatus = async () => {
         try {
             const newStatus = !isOnline;
@@ -193,6 +221,18 @@ export default function DeliveryApp() {
             console.error("Error toggling status", error);
         }
     };
+
+    // Polling de pedidos cada 15s
+    useEffect(() => {
+        if (!deliveryUser?.token) return;
+
+        const interval = setInterval(() => {
+            fetchOrders();          // Actualiza estadísticas y mis pedidos activos
+            fetchAvailableOrders(); // Actualiza disponibles
+        }, 15000);
+
+        return () => clearInterval(interval);
+    }, [deliveryUser]);
 
     if (!deliveryUser) {
         return (
@@ -373,6 +413,18 @@ export default function DeliveryApp() {
                                                         </button>
                                                         <button
                                                             className="btn"
+                                                            style={{ background: '#3B82F6', color: 'white', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                                            onClick={() => {
+                                                                const address = order.customerAddress || order.customer?.address || 'Tlapa de Comonfort, Guerrero';
+                                                                const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+                                                                window.open(url, '_blank');
+                                                            }}
+                                                        >
+                                                            <MapPin size={20} />
+                                                            Ver en Mapa
+                                                        </button>
+                                                        <button
+                                                            className="btn"
                                                             style={{ background: '#1E293B', color: 'white', fontWeight: '700' }}
                                                             onClick={() => handleUpdateStatus(order.id, 'COMPLETED')}
                                                         >
@@ -403,11 +455,30 @@ export default function DeliveryApp() {
                                     </div>
                                 )}
                             </div>
+                            <label style={{ position: 'absolute', bottom: '0', right: '0', background: 'var(--primary)', color: 'white', padding: '0.4rem', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                                <Camera size={18} />
+                                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const url = URL.createObjectURL(file);
+                                        updateRiderProfile({ image: url });
+                                    }
+                                }} />
+                            </label>
                         </div>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{deliveryUser.name}</h2>
-                        <label style={{ background: '#10B981', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>
-                            Repartidor Verificado
-                        </label>
+                        <p style={{ color: '#64748B', marginBottom: '1rem' }}>{deliveryUser.phone}</p>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <label style={{ background: '#10B981', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>
+                                Repartidor Verificado
+                            </label>
+                            <button
+                                onClick={() => setShowEditProfile(true)}
+                                style={{ background: '#E0F2FE', color: '#0284C7', border: 'none', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                                <Edit2 size={12} /> Editar
+                            </button>
+                        </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
@@ -426,6 +497,51 @@ export default function DeliveryApp() {
                     <button onClick={() => setDeliveryUser(null)} className="btn" style={{ width: '100%', background: '#FEE2E2', color: '#EF4444', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                         <LogOut size={18} /> Cerrar Sesión
                     </button>
+                </div>
+            )}
+
+            {/* Edit Profile Modal */}
+            {showEditProfile && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>Editar Perfil</h3>
+                            <button onClick={() => setShowEditProfile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <X size={24} color="#94A3B8" />
+                            </button>
+                        </div>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const updates = {
+                                name: formData.get('name'),
+                                phone: formData.get('phone')
+                            };
+                            const password = formData.get('password');
+                            if (password) updates.password = password;
+
+                            const res = await updateRiderProfile(updates);
+                            if (res.success) {
+                                setShowEditProfile(false);
+                            } else {
+                                alert(res.error || "Error al actualizar");
+                            }
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label className="label">Nombre</label>
+                                <input name="name" type="text" className="input" defaultValue={deliveryUser.name} required />
+                            </div>
+                            <div>
+                                <label className="label">Teléfono</label>
+                                <input name="phone" type="tel" className="input" defaultValue={deliveryUser.phone} />
+                            </div>
+                            <div>
+                                <label className="label">Nueva Contraseña (Opcional)</label>
+                                <input name="password" type="password" className="input" placeholder="Dejar en blanco para mantener actual" />
+                            </div>
+                            <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Guardar Cambios</button>
+                        </form>
+                    </div>
                 </div>
             )}
 

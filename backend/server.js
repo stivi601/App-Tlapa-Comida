@@ -11,6 +11,7 @@ const orderRoutes = require('./src/routes/orders');
 const deliveryRoutes = require('./src/routes/delivery');
 const adminRoutes = require('./src/routes/admin');
 const smsRoutes = require('./src/routes/sms');
+const uploadRoutes = require('./src/routes/upload'); // Import upload routes
 
 // Configuración
 dotenv.config();
@@ -86,7 +87,7 @@ app.use(express.json({ limit: '50mb' }));
 // Rate Limiting
 const limiter = require('express-rate-limit').rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    max: 1000, // Aumentado para desarrollo local
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -97,6 +98,16 @@ app.use((req, res, next) => {
     req.io = io;
     next();
 });
+
+// Servir carpeta de uploads estática
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Variables de entorno para JWT
+if (!process.env.JWT_SECRET) {
+    console.warn("ADVERTENCIA: JWT_SECRET no esta definido en .env. Usando secreto inseguro por defecto.");
+    process.env.JWT_SECRET = "secret_super_seguro_development";
+}
 
 // Rutas de prueba
 app.get('/', (req, res) => {
@@ -121,6 +132,7 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/reviews', require('./src/routes/reviews'));
+app.use('/api/upload', uploadRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {

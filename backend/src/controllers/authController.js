@@ -11,14 +11,12 @@ const register = async (req, res) => {
     try {
         const { email, password, name, phone } = req.body;
 
-        // Validar datos
         if (!email || !password || !name) {
             return res.status(400).json({
                 error: 'Email, contraseña y nombre son requeridos'
             });
         }
 
-        // Verificar si el usuario ya existe por email
         const existingEmail = await prisma.user.findUnique({
             where: { email }
         });
@@ -29,7 +27,6 @@ const register = async (req, res) => {
             });
         }
 
-        // Verificar si el usuario ya existe por teléfono (si se proporcionó)
         if (phone) {
             const existingPhone = await prisma.user.findFirst({
                 where: { phone }
@@ -42,10 +39,8 @@ const register = async (req, res) => {
             }
         }
 
-        // Hash de la contraseña
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Crear usuario
         const user = await prisma.user.create({
             data: {
                 email,
@@ -64,7 +59,6 @@ const register = async (req, res) => {
             }
         });
 
-        // Generar token
         const token = jwt.sign(
             { userId: user.id, email: user.email, role: user.role },
             JWT_SECRET,
@@ -95,7 +89,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Buscar usuario
         const user = await prisma.user.findUnique({
             where: { email }
         });
@@ -106,7 +99,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Verificar contraseña
         const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
@@ -115,14 +107,12 @@ const login = async (req, res) => {
             });
         }
 
-        // Generar token
         const token = jwt.sign(
             { userId: user.id, email: user.email, role: user.role },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
 
-        // Retornar usuario sin contraseña
         const { password: _, ...userWithoutPassword } = user;
 
         res.json({
@@ -179,42 +169,36 @@ const adminLogin = async (req, res) => {
             });
         }
 
-        // Buscar admin por username o email con rol ADMIN
         const admin = await prisma.user.findFirst({
             where: {
                 OR: [
                     { username },
-                    { email: username } // En caso de que intenten usar el email en el campo de usuario
+                    { email: username }
                 ],
                 role: 'ADMIN'
             }
         });
 
         if (!admin) {
-            console.warn(`Admin login failed: User ${username} not found with ADMIN role`);
             return res.status(401).json({
                 error: 'Usuario administrador no encontrado'
             });
         }
 
-        // Verificar contraseña
         const isValidPassword = await bcrypt.compare(password, admin.password);
 
         if (!isValidPassword) {
-            console.warn(`Admin login failed: Incorrect password for user ${username}`);
             return res.status(401).json({
                 error: 'Contraseña de administrador incorrecta'
             });
         }
 
-        // Generar token
         const token = jwt.sign(
             { userId: admin.id, username: admin.username, role: 'ADMIN' },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        // Retornar usuario sin contraseña
         const { password: _, ...adminWithoutPassword } = admin;
 
         res.json({
@@ -241,7 +225,6 @@ const restaurantLogin = async (req, res) => {
             });
         }
 
-        // Buscar restaurante por username
         const restaurant = await prisma.restaurant.findFirst({
             where: { username }
         });
@@ -252,7 +235,6 @@ const restaurantLogin = async (req, res) => {
             });
         }
 
-        // Verificar contraseña
         const isValidPassword = await bcrypt.compare(password, restaurant.password);
 
         if (!isValidPassword) {
@@ -261,7 +243,6 @@ const restaurantLogin = async (req, res) => {
             });
         }
 
-        // Generar token con rol RESTAURANT
         const token = jwt.sign(
             {
                 userId: restaurant.id,
@@ -272,7 +253,6 @@ const restaurantLogin = async (req, res) => {
             { expiresIn: '24h' }
         );
 
-        // Retornar restaurante sin contraseña
         const { password: _, ...restaurantWithoutPassword } = restaurant;
 
         res.json({
@@ -286,10 +266,58 @@ const restaurantLogin = async (req, res) => {
     }
 };
 
+/**
+ * Actualizar perfil de usuario
+ */
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { name, phone, email, password, image } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (phone) updateData.phone = phone;
+        if (image) updateData.image = image;
+
+        if (email) {
+            const existingUser = await prisma.user.findUnique({ where: { email } });
+            if (existingUser && existingUser.id !== userId) {
+                return res.status(400).json({ error: 'El email ya está en uso' });
+            }
+            updateData.email = email;
+        }
+
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                phone: true,
+                image: true,
+                role: true,
+                createdAt: true,
+                addresses: true
+            }
+        });
+
+        res.json(updatedUser);
+    } catch (error) {
+        console.error('Error al actualizar perfil:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+};
+
 module.exports = {
     register,
     login,
     getProfile,
     adminLogin,
-    restaurantLogin
+    restaurantLogin,
+    updateProfile
 };
